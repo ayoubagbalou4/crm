@@ -10,8 +10,8 @@ const userSchema = new mongoose.Schema({
     availability: [
         {
             day: String,
-            start: String, // "09:00"
-            end: String    // "17:00"
+            start: String, 
+            end: String 
         }
     ],
     picture: String,

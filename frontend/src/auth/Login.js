@@ -77,7 +77,8 @@ const Login = () => {
                 localStorage.removeItem('rememberMe')
             }
 
-            navigate('/')
+            navigate('/admin/dashboard')
+            window.location.reload()
         } catch (error) {
             setErrors({
                 submit: error.response?.data?.message ||
@@ -99,7 +100,8 @@ const Login = () => {
         });
 
         localStorage.setItem('token', res.data.token);
-        navigate('/');
+        navigate('/admin/dashboard');
+        window.location.reload()
     };
 
     return (
