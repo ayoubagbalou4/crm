@@ -1,7 +1,18 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Layout from './Layout'
+import API from "../services/axios";
 
 const Dashboard = () => {
+
+    const [stats, setStats] = useState({ clients: 0, bookings: 0 });
+
+    useEffect(() => {
+        API.get("/stats")
+            .then((res) => setStats(res.data))
+            .catch((err) => console.error(err));
+    }, []);
+
+
     return (
         <>
             <Layout active="dashboard" content={
@@ -13,8 +24,8 @@ const Dashboard = () => {
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Total Customers</p>
-                                        <p className="text-2xl font-semibold text-gray-900">1,248</p>
+                                        <p className="text-sm font-medium text-gray-500">Total Clients</p>
+                                        <p className="text-2xl font-semibold text-gray-900">{stats.clients}</p>
                                         <p className="text-xs text-green-500 mt-1">
                                             <i className="fas fa-arrow-up mr-1"></i> 12.5% from last month
                                         </p>
@@ -27,14 +38,14 @@ const Dashboard = () => {
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Open Deals</p>
-                                        <p className="text-2xl font-semibold text-gray-900">84</p>
+                                        <p className="text-sm font-medium text-gray-500">Total Bookingd</p>
+                                        <p className="text-2xl font-semibold text-gray-900">{stats.bookings}</p>
                                         <p className="text-xs text-green-500 mt-1">
                                             <i className="fas fa-arrow-up mr-1"></i> 5.3% from last month
                                         </p>
                                     </div>
                                     <div className="p-3 rounded-full bg-green-50 text-green-600">
-                                        <i className="fas fa-shopping-cart text-xl"></i>
+                                        <i className="fas fa-calendar-alt text-xl"></i>
                                     </div>
                                 </div>
                             </div>

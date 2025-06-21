@@ -12,3 +12,16 @@
     list-style: none;
     scroll-behavior: smooth;
 }
+
+:root {
+    --color-1: #219ebc;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    height: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-1);
+}

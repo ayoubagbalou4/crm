@@ -25,13 +25,13 @@ const Sidebar = (props) => {
                             <i className={`fas fa-users mr-3 ${props.active == 'clients' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
                             Clients
                         </Link>
+                        <Link to="/bookings" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'bookings' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
+                            <i className={`fas fa-calendar-alt mr-3 ${props.active == 'bookings' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
+                            Bookings
+                        </Link>
                         <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
                             <i className="fas fa-shopping-cart mr-3 text-gray-500 group-hover:text-gray-600"></i>
                             Deals
-                        </a>
-                        <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
-                            <i className="fas fa-calendar-alt mr-3 text-gray-500 group-hover:text-gray-600"></i>
-                            Activities
                         </a>
                         <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
                             <i className="fas fa-chart-line mr-3 text-gray-500 group-hover:text-gray-600"></i>

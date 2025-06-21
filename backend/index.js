@@ -21,6 +21,8 @@ mongoose.connect(process.env.DATABASEURL).then(() => {
 
 app.use('/', require('./routes/authRoutes'))
 app.use('/', require('./routes/clientRoutes'))
+app.use('/', require('./routes/bookingRoutes'))
+app.use('/', require("./routes/dashboardRoutes"));
 
 app.get('/', (req, res) => {
     return res.json('App Is Run')

@@ -5,6 +5,7 @@ const bookingSchema = new mongoose.Schema({
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: "Client" },
     date: Date,
     time: String,
+    notes: String,
     status: { type: String, enum: ["confirmed", "cancelled"], default: "confirmed" },
     paid: { type: Boolean, default: false }
 });
