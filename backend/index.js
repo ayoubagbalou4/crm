@@ -5,10 +5,11 @@ app.use(express.json());
 const PORT = 4000;
 
 const cors = require('cors');
+
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-  optionsSuccessStatus: 200
+    origin: true,
+    credentials: true,
+    allowedHeaders: ['Authorization', 'Content-Type'],
 }));
 
 
