@@ -18,7 +18,8 @@ import CalendarView from './admin/Calendar/CalendarView';
 
 const App = () => {
 
-  axios.defaults.baseURL = 'http://localhost:4000/'
+  // axios.defaults.baseURL = 'http://localhost:4000/'
+  axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
 
   return (
     <BrowserRouter>
