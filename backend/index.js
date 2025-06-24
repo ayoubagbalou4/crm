@@ -5,7 +5,23 @@ app.use(express.json());
 const PORT = 4000;
 
 const cors = require('cors');
-app.use(cors({}));
+const allowedOrigins = [
+  'https://crm-tau-eight.vercel.app',
+  'https://crm-qyaz.vercel.app'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true // if you're using cookies or auth headers
+}));
 
 
 const dotenv = require('dotenv');
