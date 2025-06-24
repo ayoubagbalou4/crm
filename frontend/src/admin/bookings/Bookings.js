@@ -40,7 +40,7 @@ const Bookings = () => {
             showDenyButton: true,
             confirmButtonText: "Cancel booking",
             denyButtonText: "Don't Cancel booking"
-        }).then( async (result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await API.patch(`/bookings/${id}/cancel`);
@@ -52,6 +52,27 @@ const Bookings = () => {
             }
         });
     };
+
+
+    const deleteBookingsConfirm = (id) => {
+        Swal.fire({
+            title: "Do you want to delete This Bookings?",
+            showDenyButton: true,
+            confirmButtonText: "delete",
+            denyButtonText: "Don't delete"
+        }).then( async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await API.delete(`/bookings/${id}`);
+                    fetchBookings();
+                    Swal.fire("Deleted!", "", "success");
+                } catch (err) {
+                    setError(err.response?.data?.message || 'Failed to cancel booking');
+                }
+            }
+        });
+    }
+
 
     const getPaginatedBookings = () => {
         const startIndex = (pagination.currentPage - 1) * pagination.limit;
@@ -209,6 +230,12 @@ const Bookings = () => {
                                                             >
                                                                 <i className="fas fa-eye"></i>
                                                             </Link>
+                                                            <button
+                                                                onClick={() => deleteBookingsConfirm(booking._id)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                            >
+                                                                <i className="fas fa-trash"></i>
+                                                            </button>
                                                             {booking.status === "confirmed" && (
                                                                 <button
                                                                     onClick={() => cancelBooking(booking._id)}

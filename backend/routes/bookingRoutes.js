@@ -6,6 +6,7 @@ const {
   getBooking,
   cancelBooking,
   updateBooking,
+  deleteBooking
 } = require("../controllers/bookingController");
 
 router.use(authMiddleware);
@@ -15,6 +16,7 @@ router.get("/bookings", getBookings);
 router.get("/bookings/:id", getBooking);   
 router.patch("/bookings/:id/cancel", cancelBooking); 
 router.put("/bookings/:id", updateBooking);
+router.delete("/bookings/:id", deleteBooking);
 
 module.exports = router;
 

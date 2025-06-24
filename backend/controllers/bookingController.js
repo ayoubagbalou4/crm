@@ -41,7 +41,7 @@ exports.getBooking = async (req, res) => {
     try {
         const { id } = req.params;
         const booking = await Booking.findById(id)
-        .populate("clientId")
+            .populate("clientId")
         if (!booking) {
             return res.status(404).json({ error: 'booking not found' });
         }
@@ -84,5 +84,19 @@ exports.updateBooking = async (req, res) => {
         res.status(200).json(booking);
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+};
+
+
+exports.deleteBooking = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedBooking = await Booking.findByIdAndDelete(id);
+        if (!deletedBooking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        res.status(200).json({ message: 'Booking deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete Booking', details: error.message });
     }
 };

@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import Layout from './Layout'
 import API from "../services/axios";
+import moment from 'moment';
+import BookingModal from './bookings/BookingModal';
+import Swal from 'sweetalert2';
+import { Link } from 'react-router-dom';
+
 
 const Dashboard = () => {
 
@@ -12,6 +17,93 @@ const Dashboard = () => {
             .catch((err) => console.error(err));
     }, []);
 
+    const [bookings, setBookings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [clients, setClients] = useState([]);
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [selectedSlot, setSelectedSlot] = useState(null);
+
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [bookingsRes, clientsRes] = await Promise.all([
+                    API.get('/bookings'),
+                    API.get('/clients')
+                ]);
+                setBookings(bookingsRes.data);
+                setClients(clientsRes.data.clients || []);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Failed to fetch data');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+
+    const handleBookingClick = (booking, e) => {
+        e?.stopPropagation();
+        setSelectedBooking(booking);
+        setSelectedSlot(null);
+        setShowModal(true);
+    };
+
+    const getStatusBadgeClass = (status) => {
+        switch (status) {
+            case 'confirmed': return 'bg-blue-100 text-blue-800';
+            case 'cancelled': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+
+    const handleSaveBooking = async (formData) => {
+        try {
+            setLoading(true);
+            let updatedBookings;
+
+            if (selectedBooking) {
+                await API.patch(`/bookings/${selectedBooking._id}`, formData);
+            } else {
+                await API.post('/bookings', formData);
+            }
+
+            // Refresh bookings
+            const response = await API.get('/bookings');
+            setBookings(response.data);
+            setShowModal(false);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to save booking');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const cancelBooking = async (id) => {
+        Swal.fire({
+            title: "Cancel this booking?",
+            showDenyButton: true,
+            confirmButtonText: "Cancel booking",
+            denyButtonText: "Don't Cancel booking"
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await API.patch(`/bookings/${id}/cancel`);
+                    const response = await API.get('/bookings');
+                    setBookings(response.data);
+                    setShowModal(false);
+                    Swal.fire("Canceled!", "", "success");
+                } catch (err) {
+                    setError(err.response?.data?.message || 'Failed to cancel booking');
+                }
+            }
+        });
+    };
 
     return (
         <>
@@ -158,73 +250,69 @@ const Dashboard = () => {
 
                         {/* Recent activities and top customers */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Recent activities */}
                             <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
-                                <div className="space-y-4">
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 mt-1">
-                                            <div className="h-8 w-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
-                                                <i className="fas fa-check"></i>
-                                            </div>
+                                <h2 className="text-lg font-medium text-gray-900">Upcoming Sessions</h2>
+                                <div className="mt-4 bg-white shadow overflow-hidden sm:rounded-md">
+                                    {bookings.length === 0 ? (
+                                        <div className="p-4 text-center text-gray-500">
+                                            No bookings found
                                         </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Deal closed</p>
-                                            <p className="text-sm text-gray-500">Acme Corp - $12,500</p>
-                                            <p className="text-xs text-gray-400 mt-1">2 hours ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 mt-1">
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                                                <i className="fas fa-phone"></i>
-                                            </div>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Call with client</p>
-                                            <p className="text-sm text-gray-500">John Smith - Follow up meeting scheduled</p>
-                                            <p className="text-xs text-gray-400 mt-1">4 hours ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 mt-1">
-                                            <div className="h-8 w-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center">
-                                                <i className="fas fa-exclamation"></i>
-                                            </div>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Task overdue</p>
-                                            <p className="text-sm text-gray-500">Send proposal to Tech Solutions Inc</p>
-                                            <p className="text-xs text-gray-400 mt-1">1 day ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 mt-1">
-                                            <div className="h-8 w-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
-                                                <i className="fas fa-calendar-check"></i>
-                                            </div>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Meeting completed</p>
-                                            <p className="text-sm text-gray-500">Discovery call with Global Enterprises</p>
-                                            <p className="text-xs text-gray-400 mt-1">2 days ago</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 mt-1">
-                                            <div className="h-8 w-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
-                                                <i className="fas fa-times"></i>
-                                            </div>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Deal lost</p>
-                                            <p className="text-sm text-gray-500">XYZ Corporation - $8,000</p>
-                                            <p className="text-xs text-gray-400 mt-1">3 days ago</p>
-                                        </div>
-                                    </div>
+                                    ) : (
+                                        <ul className="divide-y divide-gray-200">
+                                            {bookings
+                                                .filter(b => {
+                                                    const bookingDateTime = moment(`${b.date.split('T')[0]}T${b.time}`);
+                                                    const now = moment();
+                                                    return bookingDateTime.isAfter(now);
+                                                })
+                                                .sort((a, b) => {
+                                                    const aTime = moment(`${a.date.split('T')[0]}T${a.time}`);
+                                                    const bTime = moment(`${b.date.split('T')[0]}T${b.time}`);
+                                                    return aTime.diff(bTime);
+                                                })
+                                                .slice(0, 5)
+                                                .map(booking => (
+                                                    <li key={booking._id}>
+                                                        <button
+                                                            onClick={() => handleBookingClick(booking)}
+                                                            className="block w-full text-left hover:bg-gray-50"
+                                                        >
+                                                            <div className="px-4 py-4 sm:px-6">
+                                                                <div className="flex items-center justify-between">
+                                                                    <p className="text-sm font-medium text-indigo-600 truncate">
+                                                                        {booking.clientId?.fullName || 'Client'}
+                                                                    </p>
+                                                                    <div className="ml-2 flex-shrink-0 flex">
+                                                                        <p className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(booking.status)
+                                                                            }`}>
+                                                                            {booking.status}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="mt-2 sm:flex sm:justify-between">
+                                                                    <div className="sm:flex">
+                                                                        <p className="flex items-center text-sm text-gray-500">
+                                                                            <i className="fas fa-calendar mr-1.5 text-gray-400"></i>
+                                                                            {moment(booking.date.split('T')[0]).format('ddd, MMM D')}, {moment(booking.time, 'HH:mm').format('h:mm A')}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                                                                        <i className="fas fa-file-alt mr-1.5 text-gray-400"></i>
+                                                                        <p className="truncate max-w-xs">{booking.notes || 'No notes'}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    </li>
+                                                ))
+                                            }
+                                        </ul>
+                                    )}
                                 </div>
                                 <div className="mt-4">
-                                    <button className="text-sm text-primary-600 hover:text-primary-800 font-medium">View all activities</button>
+                                    <Link to={`/bookings`}>
+                                    <button className="text-sm text-primary-600 hover:text-primary-800 font-medium">View all Bookings</button>
+                                    </Link>
                                 </div>
                             </div>
 
@@ -276,6 +364,18 @@ const Dashboard = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Booking Modal */}
+                        {showModal && (
+                            <BookingModal
+                                slotInfo={selectedSlot}
+                                booking={selectedBooking}
+                                clients={clients}
+                                onClose={() => setShowModal(false)}
+                                onSave={handleSaveBooking}
+                                onCancelBooking={selectedBooking ? () => cancelBooking(selectedBooking._id) : null}
+                            />
+                        )}
                     </div>
                 </>
             }

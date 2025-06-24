@@ -26,8 +26,12 @@ const Sidebar = (props) => {
                             Clients
                         </Link>
                         <Link to="/bookings" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'bookings' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
-                            <i className={`fas fa-calendar-alt mr-3 ${props.active == 'bookings' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
+                            <i className={`fas fa-clock mr-3 ${props.active == 'bookings' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
                             Bookings
+                        </Link>
+                        <Link to="/calendar" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'calendar' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
+                            <i className={`fas fa-calendar-alt mr-3 ${props.active == 'calendar' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
+                            Calendar
                         </Link>
                         <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
                             <i className="fas fa-shopping-cart mr-3 text-gray-500 group-hover:text-gray-600"></i>

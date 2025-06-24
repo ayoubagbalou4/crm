@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
+import { format } from "date-fns";
 
 const BookingModal = ({
     slotInfo,
@@ -22,14 +23,14 @@ const BookingModal = ({
         if (booking) {
             setFormData({
                 clientId: booking.clientId?._id || '',
-                date: booking.date,
+                date: booking.date ? booking.date.split('T')[0] : '', // Extract just the date part
                 time: booking.time,
                 notes: booking.notes || ''
             });
         } else if (slotInfo) {
             setFormData({
                 clientId: '',
-                date: slotInfo.date,
+                date: slotInfo.date ? slotInfo.date.split('T')[0] : '', // Extract just the date part
                 time: slotInfo.time,
                 notes: ''
             });
@@ -62,7 +63,7 @@ const BookingModal = ({
                         <h3 className="text-lg font-medium text-gray-900 mb-4">
                             {booking ? 'Booking Details' : 'New Booking'}
                         </h3>
-                        <button 
+                        <button
                             onClick={onClose}
                             className="text-gray-400 hover:text-gray-500"
                         >
@@ -151,11 +152,10 @@ const BookingModal = ({
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Status
                                     </label>
-                                    <div className={`px-3 py-1 inline-flex text-xs font-medium rounded-full ${
-                                        booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                    <div className={`px-3 py-1 inline-flex text-xs font-medium rounded-full ${booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
                                         booking.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                        'bg-gray-100 text-gray-800'
-                                    }`}>
+                                            'bg-gray-100 text-gray-800'
+                                        }`}>
                                         {booking.status.toUpperCase()}
                                     </div>
                                 </div>
