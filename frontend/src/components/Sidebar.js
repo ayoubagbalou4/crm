@@ -33,18 +33,18 @@ const Sidebar = (props) => {
                             <i className={`fas fa-calendar-alt mr-3 ${props.active == 'calendar' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
                             Calendar
                         </Link>
-                        <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
-                            <i className="fas fa-shopping-cart mr-3 text-gray-500 group-hover:text-gray-600"></i>
-                            Deals
-                        </a>
-                        <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
-                            <i className="fas fa-chart-line mr-3 text-gray-500 group-hover:text-gray-600"></i>
-                            Reports
-                        </a>
-                        <a href="#" className="flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900 group">
-                            <i className="fas fa-cog mr-3 text-gray-500 group-hover:text-gray-600"></i>
+                        <Link to="/settings" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'settings' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
+                            <i className={`fas fa-cog mr-3 ${props.active == 'settings' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
                             Settings
-                        </a>
+                        </Link>
+                        <Link to="/payments" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'payments' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
+                            <i className={`fa-solid fa-money-check-dollar mr-3 ${props.active == 'payments' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
+                            Payments
+                        </Link>
+                        <Link to="/emailSettings" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'emailSettings' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
+                            <i className={`fa-solid fa-envelope mr-3 ${props.active == 'emailSettings' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
+                            Email Settings
+                        </Link>
                     </nav>
                     <div className="mt-auto pt-4 border-t border-gray-200">
                         <div className="flex items-center px-2">

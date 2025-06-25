@@ -15,6 +15,10 @@ import Page404 from './components/Page404';
 import ClientDetails from './admin/client/ClientDetails';
 import BookingDetails from './admin/bookings/BookingDetails';
 import CalendarView from './admin/Calendar/CalendarView';
+import Settings from './admin/settings/Settings';
+import PaymentSettings from './admin/settings/PaymentSettings';
+import EditProfile from './admin/profile/EditProfile';
+import EmailSettings from './admin/settings/EmailSettings';
 
 const App = () => {
 
@@ -40,6 +44,12 @@ const App = () => {
           <Route path='/bookings/:id' element={<BookingDetails />} />
 
           <Route path='/calendar' element={<CalendarView />} />
+
+          <Route path='/settings' element={<Settings />} />
+          <Route path='/payments' element={<PaymentSettings />} />
+          <Route path='/emailSettings' element={<EmailSettings />} />
+
+          <Route path='/profile' element={<EditProfile />} />
 
           <Route path='/404' element={<Page404 />} />
         </Routes>

@@ -103,10 +103,10 @@ app.listen(PORT, () => {
 // 11. **Profile Settings Page**
 //     Edit trainer's name, email, password, timezone, etc.
 
-// 12. **Email Settings Page** *(optional)*
+// 12. **EmailSettings Page** *(optional)*
 //     Configure reminder emails (timing, template, etc.)
 
-// 13. **Payment Settings Page** *(optional)*
+// 13. **PaymentSettings Page** *(optional)*
 //     Connect Stripe/PayPal and set session pricing.
 
 // ---
