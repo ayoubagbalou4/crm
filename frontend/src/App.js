@@ -22,7 +22,9 @@ import EmailSettings from './admin/settings/EmailSettings';
 
 const App = () => {
 
-  axios.defaults.baseURL = 'http://localhost:4000/'
+  // axios.defaults.baseURL = 'http://localhost:4000/'
+  axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
+  axios.defaults.withCredentials = true
 
   return (
     <BrowserRouter>

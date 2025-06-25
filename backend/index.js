@@ -5,7 +5,12 @@ app.use(express.json());
 const PORT = 4000;
 
 const cors = require('cors');
-app.use(cors({}));
+
+app.use(cors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ['Authorization', 'Content-Type'],
+}));
 
 
 const dotenv = require('dotenv');
