@@ -6,40 +6,108 @@ const BookingModal = ({
     slotInfo,
     booking,
     clients,
+    sessionPricing,
     onClose,
     onSave,
-    onCancelBooking
+    onCancelBooking,
+    trainerSettings
 }) => {
     const [formData, setFormData] = useState({
         clientId: '',
+        SessionPricingId: '',
         date: '',
         time: '',
         notes: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [availableSlots, setAvailableSlots] = useState([]);
+
+    // Generate available time slots based on trainer settings
+    const generateAvailableSlots = (date) => {
+        if (!trainerSettings || !date) return [];
+
+        const dayName = moment(date).format('dddd').toLowerCase();
+        if (!trainerSettings.daysAvailable[dayName]) return [];
+
+        const slots = [];
+        const startTime = moment(trainerSettings.startTime, 'HH:mm');
+        const endTime = moment(trainerSettings.endTime, 'HH:mm');
+        const breakStart = moment(trainerSettings.breakStart, 'HH:mm');
+        const breakEnd = moment(trainerSettings.breakEnd, 'HH:mm');
+        const duration = trainerSettings.sessionDuration;
+        const buffer = trainerSettings.bufferTime;
+
+        let currentSlot = startTime.clone();
+
+        while (currentSlot.isBefore(endTime)) {
+            // Skip break time
+            if (currentSlot.isBetween(breakStart, breakEnd)) {
+                currentSlot = breakEnd.clone();
+                continue;
+            }
+
+            // Check if slot would go past end time
+            const slotEnd = currentSlot.clone().add(duration, 'minutes');
+            if (slotEnd.isAfter(endTime)) break;
+
+            // Format the time for display and value
+            const timeValue = currentSlot.format('HH:mm');
+            const timeDisplay = currentSlot.format('h:mm A');
+
+            slots.push({
+                value: timeValue,
+                display: timeDisplay,
+                available: true
+            });
+
+            currentSlot.add(duration + buffer, 'minutes');
+        }
+
+        return slots;
+    };
 
     useEffect(() => {
         if (booking) {
             setFormData({
                 clientId: booking.clientId?._id || '',
-                date: booking.date ? booking.date.split('T')[0] : '', // Extract just the date part
+                SessionPricingId: booking.SessionPricingId?._id || '',
+                date: booking.date ? booking.date.split('T')[0] : '',
                 time: booking.time,
                 notes: booking.notes || ''
             });
         } else if (slotInfo) {
+            const date = slotInfo.date ? slotInfo.date.split('T')[0] : '';
             setFormData({
                 clientId: '',
-                date: slotInfo.date ? slotInfo.date.split('T')[0] : '', // Extract just the date part
+                SessionPricingId: '',
+                date: date,
                 time: slotInfo.time,
                 notes: ''
             });
+
+            // Generate available slots when date changes
+            if (date) {
+                const slots = generateAvailableSlots(date);
+                setAvailableSlots(slots);
+            }
         }
     }, [booking, slotInfo]);
 
-    const handleChange = (e) => {
+    // Update available slots when date changes
+    const handleDateChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'date' && value) {
+            const slots = generateAvailableSlots(value);
+            setAvailableSlots(slots);
+
+            // Reset time if no slots available or if current time isn't in available slots
+            if (slots.length === 0 || !slots.some(slot => slot.value === formData.time)) {
+                setFormData(prev => ({ ...prev, time: slots[0]?.value || '' }));
+            }
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -87,7 +155,7 @@ const BookingModal = ({
                                 <select
                                     name="clientId"
                                     value={formData.clientId}
-                                    onChange={handleChange}
+                                    onChange={handleDateChange}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     required
                                     disabled={!!booking}
@@ -96,6 +164,25 @@ const BookingModal = ({
                                     {clients.map(client => (
                                         <option key={client._id} value={client._id}>
                                             {client.fullName} {client.phone ? `(${client.phone})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Session *</label>
+                                <select
+                                    name="SessionPricingId"
+                                    value={formData.SessionPricingId}
+                                    onChange={handleDateChange}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    required
+                                    disabled={!!booking}
+                                >
+                                    <option value="">Select Session</option>
+                                    {sessionPricing.map(s => (
+                                        <option key={s._id} value={s._id}>
+                                            {s.sessionType} - {s.duration} min - {s.price} $
                                         </option>
                                     ))}
                                 </select>
@@ -110,7 +197,7 @@ const BookingModal = ({
                                         type="date"
                                         name="date"
                                         value={formData.date}
-                                        onChange={handleChange}
+                                        onChange={handleDateChange}
                                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                         required
                                         disabled={!!booking}
@@ -120,15 +207,38 @@ const BookingModal = ({
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Time *
                                     </label>
-                                    <input
-                                        type="time"
-                                        name="time"
-                                        value={formData.time}
-                                        onChange={handleChange}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                        disabled={!!booking}
-                                    />
+                                    {booking ? (
+                                        <input
+                                            type="time"
+                                            name="time"
+                                            value={formData.time}
+                                            onChange={handleDateChange}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                            disabled
+                                        />
+                                    ) : (
+                                        <select
+                                            name="time"
+                                            value={formData.time}
+                                            onChange={handleDateChange}
+                                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                            required
+                                        >
+                                            <option value="">Select time</option>
+                                            {availableSlots.length > 0 ? (
+                                                availableSlots.map(slot => (
+                                                    <option key={slot.value} value={slot.value}>
+                                                        {slot.display}
+                                                    </option>
+                                                ))
+                                            ) : (
+                                                <option value="" disabled>
+                                                    No available slots for this day
+                                                </option>
+                                            )}
+                                        </select>
+                                    )}
                                 </div>
                             </div>
 
@@ -139,7 +249,7 @@ const BookingModal = ({
                                 <textarea
                                     name="notes"
                                     value={formData.notes}
-                                    onChange={handleChange}
+                                    onChange={handleDateChange}
                                     rows={3}
                                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     disabled={!!booking && booking.status === 'cancelled'}
@@ -187,7 +297,7 @@ const BookingModal = ({
                                 <button
                                     type="submit"
                                     className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                    disabled={loading}
+                                    disabled={loading || availableSlots.length === 0}
                                 >
                                     {loading ? 'Saving...' : 'Save Booking'}
                                 </button>

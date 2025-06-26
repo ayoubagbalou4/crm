@@ -19,11 +19,13 @@ import Settings from './admin/settings/Settings';
 import PaymentSettings from './admin/settings/PaymentSettings';
 import EditProfile from './admin/profile/EditProfile';
 import EmailSettings from './admin/settings/EmailSettings';
+import LandingPage from './pages/LandingPage';
+import Notifications from './admin/notification/Notifications';
 
 const App = () => {
 
-  // axios.defaults.baseURL = 'http://localhost:4000/'
-  axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
+  axios.defaults.baseURL = 'http://localhost:4000/'
+  // axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
   axios.defaults.withCredentials = true
 
   return (
@@ -52,6 +54,10 @@ const App = () => {
           <Route path='/emailSettings' element={<EmailSettings />} />
 
           <Route path='/profile' element={<EditProfile />} />
+
+          <Route path='/notifications' element={<Notifications />} />
+
+          <Route path='/' element={<LandingPage />} />
 
           <Route path='/404' element={<Page404 />} />
         </Routes>

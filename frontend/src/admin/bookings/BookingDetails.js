@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import API from '../../services/axios';
 import Layout from '../Layout';
 import Swal from 'sweetalert2';
+import moment from 'moment';
 
 const BookingDetails = () => {
     const { id } = useParams();
@@ -17,12 +18,18 @@ const BookingDetails = () => {
         time: ''
     });
 
+    const [trainerSettings, setTrainerSettings] = useState(null);
+
     useEffect(() => {
         const fetchBooking = async () => {
             try {
                 setLoading(true);
-                const response = await API.get(`/bookings/${id}`);
-                setBooking(response.data);
+                const [bookingsRes, settingsRes] = await Promise.all([
+                    API.get(`/bookings/${id}`),
+                    API.get("/settings"),
+                ]);
+                setBooking(bookingsRes.data);
+                setTrainerSettings(settingsRes.data);
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to fetch booking details');
             } finally {
@@ -38,7 +45,7 @@ const BookingDetails = () => {
             showDenyButton: true,
             confirmButtonText: "Cancel booking",
             denyButtonText: "Don't Cancel booking"
-        }).then( async (result) => {
+        }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
                     await API.patch(`/bookings/${id}/cancel`);
@@ -51,9 +58,95 @@ const BookingDetails = () => {
         });
     };
 
-    const [reschedulingLoading,setReschedulingLoading] = useState(false)
+
+    const [availableSlots, setAvailableSlots] = useState([]);
+
+    // Generate available time slots based on selected date and trainer settings
+    const generateAvailableSlots = (date) => {
+        if (!trainerSettings || !date) return [];
+
+        const dayName = moment(date).format('dddd').toLowerCase();
+        if (!trainerSettings.daysAvailable[dayName]) return [];
+
+        const slots = [];
+        const startTime = moment(trainerSettings.startTime, 'HH:mm');
+        const endTime = moment(trainerSettings.endTime, 'HH:mm');
+        const breakStart = moment(trainerSettings.breakStart, 'HH:mm');
+        const breakEnd = moment(trainerSettings.breakEnd, 'HH:mm');
+        const duration = trainerSettings.sessionDuration;
+        const buffer = trainerSettings.bufferTime;
+
+        let currentSlot = startTime.clone();
+
+        while (currentSlot.isBefore(endTime)) {
+            // Skip break time
+            if (currentSlot.isBetween(breakStart, breakEnd)) {
+                currentSlot = breakEnd.clone();
+                continue;
+            }
+
+            // Check if slot would go past end time
+            const slotEnd = currentSlot.clone().add(duration, 'minutes');
+            if (slotEnd.isAfter(endTime)) break;
+
+            // Format the time for display and value
+            const timeValue = currentSlot.format('HH:mm');
+            const timeDisplay = currentSlot.format('h:mm A');
+
+            slots.push({
+                value: timeValue,
+                display: timeDisplay
+            });
+
+            currentSlot.add(duration + buffer, 'minutes');
+        }
+
+        return slots;
+    };
+
+    const handleRescheduleChange = (e) => {
+        const { name, value } = e.target;
+        setRescheduleForm(prev => ({ ...prev, [name]: value }));
+
+        // When date changes, update available time slots
+        if (name === 'date') {
+            const slots = generateAvailableSlots(value);
+            setAvailableSlots(slots);
+
+            // Reset time if no slots available or if current time isn't in available slots
+            if (slots.length === 0 || !slots.some(slot => slot.value === rescheduleForm.time)) {
+                setRescheduleForm(prev => ({ ...prev, time: slots[0]?.value || '' }));
+            }
+        }
+    };
+
+
+    const [reschedulingLoading, setReschedulingLoading] = useState(false)
     const handleReschedule = async (e) => {
         e.preventDefault();
+
+        // Check if selected day is available
+        const dayName = moment(rescheduleForm.date).format('dddd').toLowerCase();
+        if (!trainerSettings.daysAvailable[dayName]) {
+            Swal.fire({
+                title: 'Day Not Available',
+                text: 'The trainer is not available on the selected day',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Check if selected time is within available slots
+        const isValidTime = availableSlots.some(slot => slot.value === rescheduleForm.time);
+        if (!isValidTime) {
+            Swal.fire({
+                title: 'Time Not Available',
+                text: 'The selected time is not available for booking',
+                icon: 'error'
+            });
+            return;
+        }
+
         try {
             setReschedulingLoading(true);
             await API.put(`/bookings/${id}`, rescheduleForm);
@@ -65,10 +158,23 @@ const BookingDetails = () => {
         }
     };
 
-    const handleRescheduleChange = (e) => {
-        const { name, value } = e.target;
-        setRescheduleForm(prev => ({ ...prev, [name]: value }));
+
+    const isDateAvailable = (date) => {
+        if (!date) return false;
+
+        const selectedDate = moment(date);
+        const today = moment().startOf('day');
+
+        // Date must be today or in the future
+        if (selectedDate.isBefore(today)) return false;
+
+        // Check if day is available
+        const dayName = selectedDate.format('dddd').toLowerCase();
+        return trainerSettings?.daysAvailable[dayName] || false;
     };
+
+
+
 
     const getStatusBadge = (status) => {
         switch (status) {
@@ -151,12 +257,12 @@ const BookingDetails = () => {
                                 <div className="flex-shrink-0 h-12 w-12">
                                     <img
                                         className="h-12 w-12 rounded-full"
-                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(booking.clientId?.name || 'N/A')}&background=0ea5e9&color=fff`}
-                                        alt={booking.clientId?.name || 'N/A'}
+                                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(booking.clientId?.fullName || 'N/A')}&background=0ea5e9&color=fff`}
+                                        alt={booking.clientId?.fullName || 'N/A'}
                                     />
                                 </div>
                                 <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-900">{booking.clientId?.name || 'N/A'}</p>
+                                    <p className="text-sm font-medium text-gray-900">{booking.clientId?.fullName || 'N/A'}</p>
                                     <p className="text-sm text-gray-500">{booking.clientId?.email || 'No email'}</p>
                                     <p className="text-sm text-gray-500">{booking.clientId?.phone || 'No phone'}</p>
                                 </div>
@@ -169,7 +275,7 @@ const BookingDetails = () => {
                                 <div className="sm:col-span-1">
                                     <dt className="text-sm font-medium text-gray-500">Service</dt>
                                     <dd className="mt-1 text-sm text-gray-900">
-                                        {booking.serviceId?.name || 'N/A'} (${booking.serviceId?.price || '0'})
+                                        {booking.SessionPricingId?.sessionType || 'N/A'} (${booking.SessionPricingId?.price || '0'})
                                     </dd>
                                 </div>
                                 <div className="sm:col-span-1">
@@ -187,7 +293,7 @@ const BookingDetails = () => {
                                 <div className="sm:col-span-1">
                                     <dt className="text-sm font-medium text-gray-500">Duration</dt>
                                     <dd className="mt-1 text-sm text-gray-900">
-                                        {booking.serviceId?.duration || 'N/A'} mins
+                                        {booking.SessionPricingId?.duration || 'N/A'} mins
                                     </dd>
                                 </div>
                                 <div className="sm:col-span-2">
@@ -229,28 +335,63 @@ const BookingDetails = () => {
                             {isRescheduling && (
                                 <form onSubmit={handleReschedule} className="mt-4 p-4 bg-white rounded-md border border-gray-200">
                                     <h4 className="text-sm font-medium text-gray-700 mb-3">Reschedule Booking</h4>
+
+
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">New Date</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">New Date *</label>
                                             <input
                                                 type="date"
                                                 name="date"
                                                 value={rescheduleForm.date}
                                                 onChange={handleRescheduleChange}
-                                                className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
+                                                className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                 required
+                                                disabled={loading}
+                                                min={moment().format('YYYY-MM-DD')}
                                             />
+                                            {rescheduleForm.date && !isDateAvailable(rescheduleForm.date) && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    Trainer is not available on this day
+                                                </p>
+                                            )}
                                         </div>
+
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">New Time</label>
-                                            <input
-                                                type="time"
-                                                name="time"
-                                                value={rescheduleForm.time}
-                                                onChange={handleRescheduleChange}
-                                                className="block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
-                                                required
-                                            />
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
+                                            {rescheduleForm.date && isDateAvailable(rescheduleForm.date) ? (
+                                                <select
+                                                    name="time"
+                                                    value={rescheduleForm.time}
+                                                    onChange={handleRescheduleChange}
+                                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                                                    required
+                                                    disabled={loading || availableSlots.length === 0}
+                                                >
+                                                    <option value="">Select time</option>
+                                                    {availableSlots.map(slot => (
+                                                        <option key={slot.value} value={slot.value}>
+                                                            {slot.display}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type="time"
+                                                    name="time"
+                                                    value={rescheduleForm.time}
+                                                    onChange={handleRescheduleChange}
+                                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                    disabled
+                                                />
+                                            )}
+                                            {rescheduleForm.date && isDateAvailable(rescheduleForm.date) && availableSlots.length === 0 && (
+                                                <p className="mt-1 text-sm text-red-600">
+                                                    No available time slots for this day
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="mt-4 flex justify-end space-x-3">

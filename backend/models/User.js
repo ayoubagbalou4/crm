@@ -10,12 +10,15 @@ const userSchema = new mongoose.Schema({
     availability: [
         {
             day: String,
-            start: String, 
-            end: String 
+            start: String,
+            end: String
         }
     ],
     picture: String,
     googleId: String,
+    phone: Number,
+    country: String,
+    timezone: String
 });
 
 // Hash password before save

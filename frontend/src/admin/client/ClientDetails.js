@@ -2,33 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Layout from '../Layout';
+import API from '../../services/axios';
+import Swal from 'sweetalert2';
 
 const ClientDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [client, setClient] = useState(null);
+    const [bookings, setBookings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('sessions');
 
-    useEffect(() => {
-        const fetchClient = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await axios.get(`/clients/${id}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                setClient(response.data);
-            } catch (err) {
-                setError(err.response?.data?.message || 'Failed to fetch client');
-                console.error('Error fetching client:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchClient = async () => {
+        try {
+            const [clientsRes, bookingsRes,] = await Promise.all([
+                API.get(`/clients/${id}`),
+                API.get(`/bookingsByClient/${id}`),
+            ]);
+            setClient(clientsRes.data);
+            setBookings(bookingsRes.data);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to fetch client');
+            console.error('Error fetching client:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchClient();
     }, [id]);
 
@@ -49,6 +51,46 @@ const ClientDetails = () => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateString).toLocaleDateString(undefined, options);
     };
+
+
+    const cancelBooking = async (id) => {
+        Swal.fire({
+            title: "Cancel this booking?",
+            showDenyButton: true,
+            confirmButtonText: "Cancel booking",
+            denyButtonText: "Don't Cancel booking"
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await API.patch(`/bookings/${id}/cancel`);
+                    fetchClient();
+                    Swal.fire("Canceled!", "", "success");
+                } catch (err) {
+                    setError(err.response?.data?.message || 'Failed to cancel booking');
+                }
+            }
+        });
+    };
+
+
+    const deleteBookingsConfirm = (id) => {
+        Swal.fire({
+            title: "Do you want to delete This Bookings?",
+            showDenyButton: true,
+            confirmButtonText: "delete",
+            denyButtonText: "Don't delete"
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await API.delete(`/bookings/${id}`);
+                    fetchClient();
+                    Swal.fire("Deleted!", "", "success");
+                } catch (err) {
+                    setError(err.response?.data?.message || 'Failed to cancel booking');
+                }
+            }
+        });
+    }
 
     if (loading) {
         return (
@@ -85,7 +127,7 @@ const ClientDetails = () => {
 
     return (
         <Layout active="clients" content={
-            <div className="px-4 py-6 sm:px-6 lg:px-8">
+            <div className="flex-1 overflow-auto p-4 bg-gray-50 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="sm:flex sm:items-center sm:justify-between">
                     <div className="flex items-center">
@@ -238,32 +280,56 @@ const ClientDetails = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    <tr className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">June 10, 2023</div>
-                                            <div className="text-sm text-gray-500">9:00 AM</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                Personal Training
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            60 mins
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                                Completed
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            Focused on core strength
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button className="text-indigo-600 hover:text-indigo-900 mr-3">View</button>
-                                            <button className="text-indigo-600 hover:text-indigo-900">Edit</button>
-                                        </td>
-                                    </tr>
+                                    {
+                                        bookings.map((booking, index) => (
+                                            <tr className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="text-sm font-medium text-gray-900">{formatDate(booking.date)}</div>
+                                                    <div className="text-sm text-gray-500">{booking.time}</div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        {booking?.SessionPricingId?.sessionType}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    {booking?.SessionPricingId?.duration} Min
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                                        {booking.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-500">
+                                                    {booking.notes}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div className="flex space-x-2">
+                                                        <Link
+                                                            to={`/bookings/${booking._id}`}
+                                                            className="text-blue-600 hover:text-blue-900"
+                                                        >
+                                                            <i className="fas fa-eye"></i>
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => deleteBookingsConfirm(booking._id)}
+                                                            className="text-red-600 hover:text-red-900"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                        {booking.status === "confirmed" && (
+                                                            <button
+                                                                onClick={() => cancelBooking(booking._id)}
+                                                                className="text-red-600 hover:text-red-900"
+                                                            >
+                                                                <i className="fas fa-times"></i>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    }
                                 </tbody>
                             </table>
                         </div>

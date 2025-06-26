@@ -3,7 +3,7 @@ const Booking = require("../models/Booking");
 // Create a booking
 exports.createBooking = async (req, res) => {
     try {
-        const { clientId, date, time, notes } = req.body;
+        const { clientId, SessionPricingId, date, time, notes } = req.body;
         const trainerId = req.user.id;
 
         const exists = await Booking.findOne({ trainerId, date, time, status: "confirmed" });
@@ -12,6 +12,7 @@ exports.createBooking = async (req, res) => {
         const booking = await Booking.create({
             trainerId,
             clientId,
+            SessionPricingId,
             date,
             time,
             notes,
@@ -28,6 +29,7 @@ exports.getBookings = async (req, res) => {
         const trainerId = req.user.id;
         const bookings = await Booking.find({ trainerId })
             .populate("clientId")
+            .populate("SessionPricingId")
             .sort({ date: 1 });
 
         res.status(200).json(bookings);
@@ -42,6 +44,23 @@ exports.getBooking = async (req, res) => {
         const { id } = req.params;
         const booking = await Booking.findById(id)
             .populate("clientId")
+            .populate("SessionPricingId")
+        if (!booking) {
+            return res.status(404).json({ error: 'booking not found' });
+        }
+        res.status(200).json(booking);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve booking', details: error.message });
+    }
+};
+
+
+exports.getBookingsByClient = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const booking = await Booking.find({ clientId: id })
+            .populate("clientId")
+            .populate("SessionPricingId")
         if (!booking) {
             return res.status(404).json({ error: 'booking not found' });
         }

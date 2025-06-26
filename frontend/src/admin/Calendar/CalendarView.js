@@ -7,7 +7,6 @@ import BookingModal from '../bookings/BookingModal';
 import { format } from "date-fns";
 import Swal from 'sweetalert2';
 
-
 const CalendarView = () => {
     const [currentDate, setCurrentDate] = useState(moment());
     const [bookings, setBookings] = useState([]);
@@ -18,18 +17,23 @@ const CalendarView = () => {
     const [view, setView] = useState('month');
     const [error, setError] = useState('');
     const [clients, setClients] = useState([]);
+    const [trainerSettings, setTrainerSettings] = useState(null);
+    const [sessionPricing, setSessionPricing] = useState(null);
 
-    // Fetch bookings and clients from API
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [bookingsRes, clientsRes] = await Promise.all([
+                const [bookingsRes, clientsRes, settingsRes,sessionPricingRes] = await Promise.all([
                     API.get('/bookings'),
-                    API.get('/clients')
+                    API.get('/clients'),
+                    API.get('/settings'), // Assuming this endpoint exists
+                    API.get('/pricing'),
                 ]);
                 setBookings(bookingsRes.data);
                 setClients(clientsRes.data.clients || []);
+                setTrainerSettings(settingsRes.data);
+                setSessionPricing(sessionPricingRes.data);
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to fetch data');
             } finally {
@@ -38,6 +42,62 @@ const CalendarView = () => {
         };
         fetchData();
     }, []);
+
+    // Check if a day is available based on trainer settings
+    const isDayAvailable = (day) => {
+        if (!trainerSettings) return true;
+        
+        const dayName = day.format('dddd').toLowerCase();
+        return trainerSettings.daysAvailable[dayName];
+    };
+
+    // Generate time slots for a given day based on trainer settings
+    const generateTimeSlots = (day) => {
+        if (!trainerSettings || !isDayAvailable(day)) return [];
+        
+        const slots = [];
+        const startTime = moment(trainerSettings.startTime, 'HH:mm');
+        const endTime = moment(trainerSettings.endTime, 'HH:mm');
+        const breakStart = moment(trainerSettings.breakStart, 'HH:mm');
+        const breakEnd = moment(trainerSettings.breakEnd, 'HH:mm');
+        const duration = trainerSettings.sessionDuration;
+        const buffer = trainerSettings.bufferTime;
+        
+        let currentSlot = startTime.clone();
+        
+        while (currentSlot.isBefore(endTime)) {
+            // Skip break time
+            if (currentSlot.isBetween(breakStart, breakEnd)) {
+                currentSlot = breakEnd.clone();
+                continue;
+            }
+            
+            // Check if slot would go past end time
+            const slotEnd = currentSlot.clone().add(duration, 'minutes');
+            if (slotEnd.isAfter(endTime)) break;
+            
+            // Check if this slot is already booked
+            const isBooked = bookings.some(booking => {
+                const bookingDate = moment(booking.date);
+                const bookingTime = moment(booking.time, 'HH:mm');
+                return (
+                    bookingDate.isSame(day, 'day') &&
+                    bookingTime.isSame(currentSlot, 'minute')
+                );
+            });
+            
+            if (!isBooked) {
+                slots.push({
+                    time: currentSlot.format('HH:mm'),
+                    available: true
+                });
+            }
+            
+            currentSlot.add(duration + buffer, 'minutes');
+        }
+        
+        return slots;
+    };
 
     // Generate calendar days based on current view
     const generateCalendarDays = () => {
@@ -77,12 +137,20 @@ const CalendarView = () => {
         setCurrentDate(currentDate.clone().add(direction === 'prev' ? -1 : 1, unit));
     };
 
-
-
     const handleDayClick = (day) => {
+        if (!isDayAvailable(day)) {
+            Swal.fire({
+                title: 'Not Available',
+                text: 'The trainer is not available on this day',
+                icon: 'info'
+            });
+            return;
+        }
+        
         setSelectedSlot({
             date: day.format('YYYY-MM-DD'),
-            time: moment().format('HH:mm')
+            time: moment().format('HH:mm'),
+            availableSlots: generateTimeSlots(day)
         });
         setSelectedBooking(null);
         setShowModal(true);
@@ -157,17 +225,21 @@ const CalendarView = () => {
         const isCurrentMonth = day.isSame(currentDate, 'month');
         const isToday = day.isSame(moment(), 'day');
         const dayBookings = getBookingsForDay(day);
+        const isAvailable = isDayAvailable(day);
 
         return (
             <div
                 key={day.format('YYYY-MM-DD')}
                 onClick={() => handleDayClick(day)}
                 className={`bg-white p-2 ${view === 'month' ? 'h-32' : 'h-32'} ${isCurrentMonth ? '' : 'text-gray-400'
-                    } ${isToday ? 'ring-2 ring-indigo-500' : ''} cursor-pointer hover:bg-gray-50`}
+                    } ${isToday ? 'ring-2 ring-indigo-500' : ''} ${isAvailable ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-100 cursor-not-allowed'}`}
             >
                 <time dateTime={day.format('YYYY-MM-DD')} className="font-medium">
                     {day.format('D')}
                 </time>
+                {!isAvailable && (
+                    <div className="mt-1 text-xs text-gray-500">Not available</div>
+                )}
                 <ol className="mt-2 space-y-1">
                     {dayBookings.slice(0, view === 'month' ? 2 : 5).map(booking => (
                         <li key={booking._id}>
@@ -211,9 +283,20 @@ const CalendarView = () => {
                         <button
                             type="button"
                             onClick={() => {
+                                const today = moment();
+                                if (!isDayAvailable(today)) {
+                                    Swal.fire({
+                                        title: 'Not Available',
+                                        text: 'The trainer is not available today',
+                                        icon: 'info'
+                                    });
+                                    return;
+                                }
+                                
                                 setSelectedSlot({
-                                    date: moment().format('YYYY-MM-DD'),
-                                    time: moment().format('HH:mm')
+                                    date: today.format('YYYY-MM-DD'),
+                                    time: moment().format('HH:mm'),
+                                    availableSlots: generateTimeSlots(today)
                                 });
                                 setSelectedBooking(null);
                                 setShowModal(true);
@@ -330,7 +413,6 @@ const CalendarView = () => {
                     </div>
                 )}
 
-
                 {/* Upcoming Events */}
                 <div className="mt-8">
                     <h2 className="text-lg font-medium text-gray-900">Upcoming Sessions</h2>
@@ -399,9 +481,11 @@ const CalendarView = () => {
                         slotInfo={selectedSlot}
                         booking={selectedBooking}
                         clients={clients}
+                        sessionPricing={sessionPricing}
                         onClose={() => setShowModal(false)}
                         onSave={handleSaveBooking}
                         onCancelBooking={selectedBooking ? () => cancelBooking(selectedBooking._id) : null}
+                        trainerSettings={trainerSettings}
                     />
                 )}
             </div>

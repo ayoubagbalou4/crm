@@ -1,14 +1,28 @@
 import React, { useContext, useState } from 'react'
 import { GlobalContext } from '../GlobalContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import API from '../services/axios';
 
 const Header = () => {
 
-    const { user } = useContext(GlobalContext);
+    const { user , setUser } = useContext(GlobalContext);
 
     const [showNotifications, setShowNotifications] = useState(false);
-    const [showMessages, setShowMessages] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
+
+    const nav = useNavigate()
+    const logout = async () => {
+        const response = await API.post(`/logout`)
+        try {
+            if (response.data.status) {
+                nav('/login')
+                setUser(null)
+                localStorage.removeItem('token')
+            }
+        } catch (error) {
+            console.log(error)
+        }
+    }
 
 
 
@@ -87,71 +101,7 @@ const Header = () => {
                     )}
                 </div>
 
-                {/* Messages Dropdown */}
-                <div className="relative">
-                    <button
-                        className="text-gray-500 focus:outline-none relative"
-                        onClick={() => setShowMessages(!showMessages)}
-                    >
-                        <i className="fas fa-envelope"></i>
-                        <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-blue-500"></span>
-                    </button>
-
-                    {showMessages && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50 border border-gray-200">
-                            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                                <h3 className="text-sm font-medium text-gray-900">Messages</h3>
-                            </div>
-                            <div className="max-h-96 overflow-y-auto">
-                                {/* Message Items */}
-                                <a href="#" className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-                                    <div className="flex items-start">
-                                        <img className="h-10 w-10 rounded-full" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Sarah Johnson" />
-                                        <div className="ml-3">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-sm font-medium text-gray-900">Sarah Johnson</p>
-                                                <span className="text-xs text-gray-400">10:30 AM</span>
-                                            </div>
-                                            <p className="text-sm text-gray-500 truncate">Hey, can we reschedule our session for next week?</p>
-                                        </div>
-                                    </div>
-                                </a>
-
-                                <a href="#" className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-                                    <div className="flex items-start">
-                                        <img className="h-10 w-10 rounded-full" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Michael Brown" />
-                                        <div className="ml-3">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-sm font-medium text-gray-900">Michael Brown</p>
-                                                <span className="text-xs text-gray-400">Yesterday</span>
-                                            </div>
-                                            <p className="text-sm text-gray-500 truncate">Thanks for the great session yesterday!</p>
-                                        </div>
-                                    </div>
-                                </a>
-
-                                <a href="#" className="block px-4 py-3 hover:bg-gray-50">
-                                    <div className="flex items-start">
-                                        <img className="h-10 w-10 rounded-full" src="https://randomuser.me/api/portraits/women/68.jpg" alt="Emily Davis" />
-                                        <div className="ml-3">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-sm font-medium text-gray-900">Emily Davis</p>
-                                                <span className="text-xs text-gray-400">Monday</span>
-                                            </div>
-                                            <p className="text-sm text-gray-500 truncate">Do you have any availability this weekend?</p>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 text-center">
-                                <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
-                                    View all messages
-                                </a>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
+               
                 {/* Profile Dropdown */}
                 <div className="relative">
                     <button
@@ -170,7 +120,7 @@ const Header = () => {
                             <div className="py-1">
                                 <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Your Profile</Link>
                                 <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</Link>
-                                <Link to="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100">Sign out</Link>
+                                <Link onClick={logout} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100">Sign out</Link>
                             </div>
                         </div>
                     )}

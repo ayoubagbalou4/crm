@@ -10,11 +10,25 @@ import { Link } from 'react-router-dom';
 const Dashboard = () => {
 
     const [stats, setStats] = useState({ clients: 0, bookings: 0 });
+    const [sessionPricing, setSessionPricing] = useState(null);
 
     useEffect(() => {
-        API.get("/stats")
-            .then((res) => setStats(res.data))
-            .catch((err) => console.error(err));
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [statsRes, sessionPricingRes] = await Promise.all([
+                    API.get('/stats'),
+                    API.get('/pricing'),
+                ]);
+                setStats(statsRes.data)
+                setSessionPricing(sessionPricingRes.data);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Failed to fetch data');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
     }, []);
 
     const [bookings, setBookings] = useState([]);
@@ -311,7 +325,7 @@ const Dashboard = () => {
                                 </div>
                                 <div className="mt-4">
                                     <Link to={`/bookings`}>
-                                    <button className="text-sm text-primary-600 hover:text-primary-800 font-medium">View all Bookings</button>
+                                        <button className="text-sm text-primary-600 hover:text-primary-800 font-medium">View all Bookings</button>
                                     </Link>
                                 </div>
                             </div>
@@ -371,6 +385,7 @@ const Dashboard = () => {
                                 slotInfo={selectedSlot}
                                 booking={selectedBooking}
                                 clients={clients}
+                                sessionPricing={sessionPricing}
                                 onClose={() => setShowModal(false)}
                                 onSave={handleSaveBooking}
                                 onCancelBooking={selectedBooking ? () => cancelBooking(selectedBooking._id) : null}

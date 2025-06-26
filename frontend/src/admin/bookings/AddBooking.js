@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import API from "../../services/axios";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from '../Layout';
+import moment from 'moment';
+import Swal from 'sweetalert2';
 
 const AddBooking = () => {
     const [clients, setClients] = useState([]);
@@ -9,33 +11,160 @@ const AddBooking = () => {
     const [error, setError] = useState('');
     const [form, setForm] = useState({
         clientId: "",
-        serviceId: "",
+        SessionPricingId: "",
         date: "",
         time: "",
         notes: ""
     });
+    const [trainerSettings, setTrainerSettings] = useState(null);
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [availableDays, setAvailableDays] = useState([]);
+    const [sessionPricing, setSessionPricing] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
-        API.get("/clients").then(res => setClients(res.data.clients));
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [clientsRes, settingsRes, pricingRes] = await Promise.all([
+                    API.get("/clients"),
+                    API.get("/settings"),
+                    API.get("/pricing")
+                ]);
+                setClients(clientsRes.data.clients || []);
+                setTrainerSettings(settingsRes.data);
+                setSessionPricing(pricingRes.data);
+                
+                // Set available days based on trainer settings
+                if (settingsRes.data) {
+                    const days = Object.entries(settingsRes.data.daysAvailable)
+                        .filter(([day, available]) => available)
+                        .map(([day]) => day);
+                    setAvailableDays(days);
+                }
+            } catch (err) {
+                setError(err.response?.data?.message || "Failed to fetch data");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
     }, []);
+
+    // Generate available time slots based on selected date and trainer settings
+    const generateAvailableSlots = (date) => {
+        if (!trainerSettings || !date) return [];
+        
+        const dayName = moment(date).format('dddd').toLowerCase();
+        if (!trainerSettings.daysAvailable[dayName]) return [];
+        
+        const slots = [];
+        const startTime = moment(trainerSettings.startTime, 'HH:mm');
+        const endTime = moment(trainerSettings.endTime, 'HH:mm');
+        const breakStart = moment(trainerSettings.breakStart, 'HH:mm');
+        const breakEnd = moment(trainerSettings.breakEnd, 'HH:mm');
+        const duration = trainerSettings.sessionDuration;
+        const buffer = trainerSettings.bufferTime;
+        
+        let currentSlot = startTime.clone();
+        
+        while (currentSlot.isBefore(endTime)) {
+            // Skip break time
+            if (currentSlot.isBetween(breakStart, breakEnd)) {
+                currentSlot = breakEnd.clone();
+                continue;
+            }
+            
+            // Check if slot would go past end time
+            const slotEnd = currentSlot.clone().add(duration, 'minutes');
+            if (slotEnd.isAfter(endTime)) break;
+            
+            // Format the time for display and value
+            const timeValue = currentSlot.format('HH:mm');
+            const timeDisplay = currentSlot.format('h:mm A');
+            
+            slots.push({
+                value: timeValue,
+                display: timeDisplay
+            });
+            
+            currentSlot.add(duration + buffer, 'minutes');
+        }
+        
+        return slots;
+    };
 
     const handleChange = e => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
+        
+        // When date changes, update available time slots
+        if (name === 'date') {
+            const slots = generateAvailableSlots(value);
+            setAvailableSlots(slots);
+            
+            // Reset time if no slots available or if current time isn't in available slots
+            if (slots.length === 0 || !slots.some(slot => slot.value === form.time)) {
+                setForm(prev => ({ ...prev, time: slots[0]?.value || '' }));
+            }
+        }
     };
 
     const handleSubmit = async e => {
         e.preventDefault();
+        
+        // Check if selected day is available
+        const dayName = moment(form.date).format('dddd').toLowerCase();
+        if (!trainerSettings.daysAvailable[dayName]) {
+            Swal.fire({
+                title: 'Day Not Available',
+                text: 'The trainer is not available on the selected day',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        // Check if selected time is within available slots
+        const isValidTime = availableSlots.some(slot => slot.value === form.time);
+        if (!isValidTime) {
+            Swal.fire({
+                title: 'Time Not Available',
+                text: 'The selected time is not available for booking',
+                icon: 'error'
+            });
+            return;
+        }
+
         try {
             setLoading(true);
             await API.post("/bookings", form);
-            navigate("/bookings");
+            Swal.fire({
+                title: 'Success!',
+                text: 'Booking created successfully',
+                icon: 'success'
+            }).then(() => {
+                navigate("/bookings");
+            });
         } catch (err) {
             setError(err.response?.data?.message || "Failed to create booking");
         } finally {
             setLoading(false);
         }
+    };
+
+    // Check if a date is available (not in the past and on an available day)
+    const isDateAvailable = (date) => {
+        if (!date) return false;
+        
+        const selectedDate = moment(date);
+        const today = moment().startOf('day');
+        
+        // Date must be today or in the future
+        if (selectedDate.isBefore(today)) return false;
+        
+        // Check if day is available
+        const dayName = selectedDate.format('dddd').toLowerCase();
+        return trainerSettings?.daysAvailable[dayName] || false;
     };
 
     return (
@@ -61,7 +190,7 @@ const AddBooking = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
                                 <select
                                     name="clientId"
                                     value={form.clientId}
@@ -79,25 +208,27 @@ const AddBooking = () => {
                                 </select>
                             </div>
 
-                            {/* <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Session *</label>
                                 <select
-                                    name="serviceId"
-                                    value={form.serviceId}
+                                    name="SessionPricingId"
+                                    value={form.SessionPricingId}
                                     onChange={handleChange}
                                     className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                                     required
                                     disabled={loading}
                                 >
-                                    <option value="">Select service</option>
-                                    {services.map(s => (
-                                        <option key={s._id} value={s._id}>{s.name} (${s.price})</option>
+                                    <option value="">Select Session</option>
+                                    {sessionPricing.map(s => (
+                                        <option key={s._id} value={s._id}>
+                                            {s.sessionType} - {s.duration} min - {s.price} $
+                                        </option>
                                     ))}
                                 </select>
-                            </div> */}
+                            </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
                                 <input
                                     type="date"
                                     name="date"
@@ -106,20 +237,48 @@ const AddBooking = () => {
                                     className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                     required
                                     disabled={loading}
+                                    min={moment().format('YYYY-MM-DD')}
                                 />
+                                {form.date && !isDateAvailable(form.date) && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        Trainer is not available on this day
+                                    </p>
+                                )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                                <input
-                                    type="time"
-                                    name="time"
-                                    value={form.time}
-                                    onChange={handleChange}
-                                    className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                    required
-                                    disabled={loading}
-                                />
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Time *</label>
+                                {form.date && isDateAvailable(form.date) ? (
+                                    <select
+                                        name="time"
+                                        value={form.time}
+                                        onChange={handleChange}
+                                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                                        required
+                                        disabled={loading || availableSlots.length === 0}
+                                    >
+                                        <option value="">Select time</option>
+                                        {availableSlots.map(slot => (
+                                            <option key={slot.value} value={slot.value}>
+                                                {slot.display}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <input
+                                        type="time"
+                                        name="time"
+                                        value={form.time}
+                                        onChange={handleChange}
+                                        className="mt-1 block w-full py-2 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        disabled
+                                    />
+                                )}
+                                {form.date && isDateAvailable(form.date) && availableSlots.length === 0 && (
+                                    <p className="mt-1 text-sm text-red-600">
+                                        No available time slots for this day
+                                    </p>
+                                )}
                             </div>
 
                             <div className="sm:col-span-2">
@@ -147,7 +306,7 @@ const AddBooking = () => {
                             <button
                                 type="submit"
                                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                disabled={loading}
+                                disabled={loading || !form.date || !isDateAvailable(form.date) || availableSlots.length === 0}
                             >
                                 {loading ? (
                                     <>

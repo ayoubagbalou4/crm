@@ -101,7 +101,7 @@ const Login = () => {
 
         localStorage.setItem('token', res.data.token);
         navigate('/dashboard');
-        window.location.reload()
+        window.location.reload();
     };
 
     return (

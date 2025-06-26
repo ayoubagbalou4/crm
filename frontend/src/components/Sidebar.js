@@ -37,6 +37,10 @@ const Sidebar = (props) => {
                             <i className={`fas fa-cog mr-3 ${props.active == 'settings' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
                             Settings
                         </Link>
+                        <Link to="/notifications" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'notifications' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
+                            <i className={`fas fa-bell mr-3 ${props.active == 'notifications' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
+                            Notifications
+                        </Link>
                         <Link to="/payments" className={`flex items-center px-2 py-2 text-sm font-medium rounded-md ${props.active == 'payments' ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'} group`}>
                             <i className={`fa-solid fa-money-check-dollar mr-3 ${props.active == 'payments' ? 'text-primary-600' : 'text-gray-500 group-hover:text-gray-600'}`}></i>
                             Payments

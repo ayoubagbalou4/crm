@@ -1,60 +1,304 @@
-import React from 'react'
-import Layout from '../Layout'
+import React, { useContext, useState, useEffect } from 'react';
+import Layout from '../Layout';
+import { GlobalContext } from '../../GlobalContext';
+import API from '../../services/axios';
+import Swal from 'sweetalert2';
 
 const EditProfile = () => {
+    const { user, setUser } = useContext(GlobalContext);
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        country: 'United States',
+        timezone: '(GMT-08:00) Pacific Time (US & Canada)',
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [loading, setLoading] = useState({
+        profile: false,
+        password: false,
+        avatar: false
+    });
+    const [errors, setErrors] = useState({
+        profile: '',
+        password: '',
+        avatar: ''
+    });
+
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                name: user.name || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                country: user.country || 'United States',
+                timezone: user.timezone || '(GMT-08:00) Pacific Time (US & Canada)',
+                // Don't reset password fields
+                currentPassword: prev.currentPassword,
+                newPassword: prev.newPassword,
+                confirmPassword: prev.confirmPassword
+            }));
+        }
+    }, [user]);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (errors[e.target.name]) {
+            setErrors({ ...errors, [e.target.name]: '' });
+        }
+    };
+
+    const validateProfile = () => {
+        if (!formData.name.trim()) {
+            setErrors({ ...errors, profile: 'Name is required' });
+            return false;
+        }
+        return true;
+    };
+
+    const handleProfileUpdate = async (e) => {
+        e.preventDefault();
+        if (!validateProfile()) return;
+        
+        setLoading({ ...loading, profile: true });
+        setErrors({ ...errors, profile: '' });
+        
+        try {
+            const response = await API.put('/profile', {
+                name: formData.name,
+                phone: formData.phone,
+                country: formData.country,
+                timezone: formData.timezone,
+            });
+
+            setUser(response.data);
+            Swal.fire({
+                title: 'Success!',
+                text: 'Profile updated successfully',
+                icon: 'success',
+                timer: 2000
+            });
+        } catch (err) {
+            setErrors({ 
+                ...errors, 
+                profile: err.response?.data?.message || 'Failed to update profile' 
+            });
+            console.log(err)
+        } finally {
+            setLoading({ ...loading, profile: false });
+        }
+    };
+
+    const validatePassword = () => {
+        if (!formData.currentPassword) {
+            setErrors({ ...errors, password: 'Current password is required' });
+            return false;
+        }
+        if (!formData.newPassword) {
+            setErrors({ ...errors, password: 'New password is required' });
+            return false;
+        }
+        if (formData.newPassword !== formData.confirmPassword) {
+            setErrors({ ...errors, password: 'New passwords do not match' });
+            return false;
+        }
+        return true;
+    };
+
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        if (!validatePassword()) return;
+
+        setLoading({ ...loading, password: true });
+        setErrors({ ...errors, password: '' });
+
+        try {
+            await API.put('/password', {
+                currentPassword: formData.currentPassword,
+                newPassword: formData.newPassword
+            });
+
+            Swal.fire({
+                title: 'Success!',
+                text: 'Password changed successfully',
+                icon: 'success',
+                timer: 2000
+            });
+            
+            setFormData({
+                ...formData,
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            });
+        } catch (err) {
+            setErrors({ 
+                ...errors, 
+                password: err.response?.data?.message || 'Failed to change password' 
+            });
+        } finally {
+            setLoading({ ...loading, password: false });
+        }
+    };
+
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type and size
+        if (!file.type.match('image.*')) {
+            setErrors({ ...errors, avatar: 'Please select an image file' });
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) { // 2MB
+            setErrors({ ...errors, avatar: 'Image size should be less than 2MB' });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        try {
+            setLoading({ ...loading, avatar: true });
+            setErrors({ ...errors, avatar: '' });
+            
+            const response = await API.post('/profile/picture', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            setUser(response.data);
+            Swal.fire({
+                title: 'Success!',
+                text: 'Profile picture updated',
+                icon: 'success',
+                timer: 2000
+            });
+        } catch (err) {
+            setErrors({ 
+                ...errors, 
+                avatar: err.response?.data?.message || 'Failed to upload image' 
+            });
+        } finally {
+            setLoading({ ...loading, avatar: false });
+        }
+    };
+
     return (
         <Layout active="settings" content={
             <div className="flex-1 overflow-auto p-4 sm:px-6 lg:px-8 bg-gray-50">
                 <div className="sm:flex sm:items-center sm:justify-between">
                     <div className="sm:flex-auto">
                         <h1 className="text-xl font-semibold text-gray-900">Profile Settings</h1>
-                        <p className="mt-2 text-sm text-gray-700">Update your personal information and account settings</p>
+                        <p className="mt-2 text-sm text-gray-700">
+                            Update your personal information and account settings
+                        </p>
                     </div>
                 </div>
 
+                {/* Error messages for each section */}
+                {errors.profile && (
+                    <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                        {errors.profile}
+                    </div>
+                )}
+
                 <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
                     <div className="px-4 py-5 sm:p-6">
-                        <form>
+                        <form onSubmit={handleProfileUpdate}>
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Profile Photo</label>
+                                    <label className="block text-sm font-medium text-gray-700">
+                                        Profile Photo
+                                    </label>
                                     <div className="mt-2 flex items-center">
                                         <span className="h-12 w-12 rounded-full overflow-hidden bg-gray-100">
-                                            <img className="h-full w-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" />
+                                            <img
+                                                className="h-full w-full object-cover"
+                                                src={user?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'}
+                                                alt="Profile"
+                                            />
                                         </span>
-                                        <button type="button" className="ml-5 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                            Change
-                                        </button>
+                                        <label className="ml-5 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
+                                            {loading.avatar ? 'Uploading...' : 'Change'}
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={handleAvatarUpload}
+                                                disabled={loading.avatar}
+                                            />
+                                        </label>
                                     </div>
+                                    {errors.avatar && (
+                                        <p className="mt-2 text-sm text-red-600">{errors.avatar}</p>
+                                    )}
                                 </div>
 
                                 <div className="border-t border-gray-200 pt-5">
-                                    <h3 className="text-lg font-medium leading-6 text-gray-900">Personal Information</h3>
+                                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                                        Personal Information
+                                    </h3>
 
                                     <div className="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                                         <div className="sm:col-span-3">
-                                            <label for="first-name" className="block text-sm font-medium text-gray-700">First name</label>
-                                            <input type="text" name="first-name" id="first-name" autocomplete="given-name" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="John" />
+                                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                                Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                id="name"
+                                                required
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={formData.name}
+                                                onChange={handleChange}
+                                            />
                                         </div>
 
                                         <div className="sm:col-span-3">
-                                            <label for="last-name" className="block text-sm font-medium text-gray-700">Last name</label>
-                                            <input type="text" name="last-name" id="last-name" autocomplete="family-name" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="Doe" />
-                                        </div>
-
-                                        <div className="sm:col-span-4">
-                                            <label for="email" className="block text-sm font-medium text-gray-700">Email address</label>
-                                            <input type="email" name="email" id="email" autocomplete="email" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="john.doe@example.com" />
-                                        </div>
-
-                                        <div className="sm:col-span-4">
-                                            <label for="phone" className="block text-sm font-medium text-gray-700">Phone number</label>
-                                            <input type="text" name="phone" id="phone" autocomplete="tel" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="(555) 123-4567" />
+                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                                Email address
+                                            </label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                id="email"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-100"
+                                                value={formData.email}
+                                                disabled
+                                            />
                                         </div>
 
                                         <div className="sm:col-span-3">
-                                            <label for="country" className="block text-sm font-medium text-gray-700">Country</label>
-                                            <select id="country" name="country" autocomplete="country" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                                                Phone number
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                name="phone"
+                                                id="phone"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={formData.phone}
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+
+                                        <div className="sm:col-span-3">
+                                            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                                                Country
+                                            </label>
+                                            <select
+                                                id="country"
+                                                name="country"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={formData.country}
+                                                onChange={handleChange}
+                                            >
                                                 <option>United States</option>
                                                 <option>Canada</option>
                                                 <option>Mexico</option>
@@ -62,8 +306,16 @@ const EditProfile = () => {
                                         </div>
 
                                         <div className="sm:col-span-3">
-                                            <label for="timezone" className="block text-sm font-medium text-gray-700">Timezone</label>
-                                            <select id="timezone" name="timezone" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                            <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
+                                                Timezone
+                                            </label>
+                                            <select
+                                                id="timezone"
+                                                name="timezone"
+                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                value={formData.timezone}
+                                                onChange={handleChange}
+                                            >
                                                 <option>(GMT-08:00) Pacific Time (US & Canada)</option>
                                                 <option>(GMT-07:00) Mountain Time (US & Canada)</option>
                                                 <option>(GMT-06:00) Central Time (US & Canada)</option>
@@ -74,44 +326,117 @@ const EditProfile = () => {
                                 </div>
 
                                 <div className="border-t border-gray-200 pt-5">
-                                    <h3 className="text-lg font-medium leading-6 text-gray-900">Change Password</h3>
-
-                                    <div className="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                                        <div className="sm:col-span-3">
-                                            <label for="current-password" className="block text-sm font-medium text-gray-700">Current Password</label>
-                                            <input type="password" name="current-password" id="current-password" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label for="new-password" className="block text-sm font-medium text-gray-700">New Password</label>
-                                            <input type="password" name="new-password" id="new-password" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                                        </div>
-
-                                        <div className="sm:col-span-3">
-                                            <label for="confirm-password" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                                            <input type="password" name="confirm-password" id="confirm-password" className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-gray-200 pt-5">
                                     <div className="flex justify-end">
-                                        <button type="button" className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                        <button
+                                            type="button"
+                                            className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                        >
                                             Cancel
                                         </button>
-                                        <button type="submit" className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                            Save Changes
+                                        <button
+                                            type="submit"
+                                            className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                            disabled={loading.profile}
+                                        >
+                                            {loading.profile ? (
+                                                <>
+                                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                    </svg>
+                                                    Saving...
+                                                </>
+                                            ) : 'Save Changes'}
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </form>
+
+                        {!user?.googleId && (
+                            <form onSubmit={handlePasswordChange} className="mt-12 border-t border-gray-200 pt-12">
+                                <h3 className="text-lg font-medium leading-6 text-gray-900">
+                                    Change Password
+                                </h3>
+
+                                {errors.password && (
+                                    <div className="mt-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
+                                        {errors.password}
+                                    </div>
+                                )}
+
+                                <div className="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+                                            Current Password *
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="currentPassword"
+                                            id="currentPassword"
+                                            required
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={formData.currentPassword}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                                            New Password *
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="newPassword"
+                                            id="newPassword"
+                                            required
+                                            minLength="6"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={formData.newPassword}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                                            Confirm Password *
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="confirmPassword"
+                                            id="confirmPassword"
+                                            required
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="mt-5 flex justify-end">
+                                    <button
+                                        type="submit"
+                                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                        disabled={loading.password || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
+                                    >
+                                        {loading.password ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Updating...
+                                            </>
+                                        ) : 'Change Password'}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
                     </div>
                 </div>
             </div>
-        }
-        />
-    )
-}
+        } />
+    );
+};
 
-export default EditProfile
+export default EditProfile;

@@ -2,9 +2,9 @@
 import axios from "axios";
 
 const API = axios.create({
-  // baseURL: "http://localhost:4000",
-  baseURL: "https://crm-qyaz.vercel.app",
-});
+  baseURL: "http://localhost:4000",
+  // baseURL: "https://crm-qyaz.vercel.app",
+}); 
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");

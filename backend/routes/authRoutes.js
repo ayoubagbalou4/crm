@@ -1,12 +1,18 @@
 const router = require("express").Router();
-const { register, login, getUsers, loginGoogle } = require("../controllers/authController");
+const { register, login, getUsers, logout , loginGoogle , updateProfile , updatePassword , updatePicture } = require("../controllers/authController");
 const { authMiddleware } = require("../middleware/authMiddleware");
+const upload = require('../middleware/upload');
 const User = require("../models/User");
+
 
 router.post("/register", register);
 router.post("/login", login);
 router.get("/users", getUsers);
+router.post('/logout', logout)
 router.post("/api/auth/google", loginGoogle);
+router.put('/profile', updateProfile)
+router.put('/password', updatePassword)
+router.post('/profile/picture', upload.single('avatar') , updatePicture)
 
 router.get("/me", authMiddleware, async (req, res) => {
     try {

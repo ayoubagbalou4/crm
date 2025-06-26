@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const bookingSchema = new mongoose.Schema({
     trainerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     clientId: { type: mongoose.Schema.Types.ObjectId, ref: "Client" },
+    SessionPricingId: { type: mongoose.Schema.Types.ObjectId, ref: "SessionPricing" },
     date: Date,
     time: String,
     notes: String,

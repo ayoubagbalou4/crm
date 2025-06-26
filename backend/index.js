@@ -28,6 +28,9 @@ app.use('/', require('./routes/authRoutes'))
 app.use('/', require('./routes/clientRoutes'))
 app.use('/', require('./routes/bookingRoutes'))
 app.use('/', require("./routes/dashboardRoutes"));
+app.use('/', require("./routes/availabilitySettingsRoutes"));
+app.use('/', require("./routes/paymentSettingsRoutes"));
+app.use('/', require("./routes/notificationsRoutes"));
 
 app.get('/', (req, res) => {
     return res.json('App Is Run')
