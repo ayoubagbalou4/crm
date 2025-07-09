@@ -97,26 +97,27 @@ exports.logout = async (req, res) => {
 
 
 
-// Update profile
-exports.updateProfile = () => async (req, res) => {
-    try {
 
+exports.updateProfile = async (req, res) => {
+    try {
         const { name, phone, country, timezone } = req.body;
         const updatedUser = await User.findByIdAndUpdate(
             req.user.id,
             { name, phone, country, timezone },
             { new: true, runValidators: true }
         );
-
-        res.json(user);
-    } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        if (!updatedUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        console.log("User updated successfully")
+        res.status(200).json({ status: true, message: 'User updated successfully', user: updatedUser });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update User', details: error.message });
     }
 };
 
 // Change password (only for non-Google users)
-exports.updatePassword = () => async (req, res) => {
+exports.updatePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
@@ -125,31 +126,33 @@ exports.updatePassword = () => async (req, res) => {
             return res.status(404).json({ msg: 'User not found' });
         }
 
-        // Check if user is Google-authenticated
         if (user.googleId) {
             return res.status(400).json({ msg: 'Google-authenticated users cannot change password here' });
         }
 
-        // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(400).json({ msg: 'Current password is incorrect' });
         }
 
-        // Hash new password
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
         await user.save();
 
-        res.json({ msg: 'Password updated successfully' });
+        res.json({
+            status: true,
+            msg: 'Password updated successfully'
+        });
+
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        res.status(500).json({
+            status: false,
+            message: 'Server Error'
+        });
     }
 };
 
-// Upload profile picture
-exports.updatePicture = () => async (req, res) => {
+exports.updatePicture = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
         if (!user) {
@@ -157,13 +160,11 @@ exports.updatePicture = () => async (req, res) => {
         }
 
         if (req.file) {
-            user.avatar = req.file.path; // or the URL if using cloud storage
+            user.picture = process.env.BASE_URL+req.file.path;
             await user.save();
         }
-
         res.json(user);
     } catch (err) {
-        console.error(err);
         res.status(500).send('Server Error');
     }
 };

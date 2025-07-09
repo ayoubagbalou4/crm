@@ -2,10 +2,12 @@ import React, { useContext, useState } from 'react'
 import { GlobalContext } from '../GlobalContext';
 import { Link, useNavigate } from 'react-router-dom';
 import API from '../services/axios';
+import { useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 
 const Header = () => {
 
-    const { user , setUser } = useContext(GlobalContext);
+    const { user, setUser } = useContext(GlobalContext);
 
     const [showNotifications, setShowNotifications] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -23,6 +25,45 @@ const Header = () => {
             console.log(error)
         }
     }
+
+
+    const [notifications, setNotifications] = useState([]);
+    const [filter, setFilter] = useState('all');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                setLoading(true);
+                const response = await API.get(`/notifications?filter=${filter}`);
+                setNotifications(response.data);
+                setLoading(false);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Failed to fetch notifications');
+                setLoading(false);
+            }
+        };
+
+        fetchNotifications();
+    }, [filter]);
+
+
+    const getIcon = (type) => {
+        switch (type) {
+            case 'booking':
+                return { icon: 'fas fa-calendar-check', color: 'indigo' };
+            case 'payment':
+                return { icon: 'fas fa-dollar-sign', color: 'green' };
+            case 'reminder':
+                return { icon: 'fas fa-exclamation-triangle', color: 'yellow' };
+            case 'message':
+                return { icon: 'fas fa-envelope', color: 'blue' };
+            default:
+                return { icon: 'fas fa-bell', color: 'gray' };
+        }
+    };
 
 
 
@@ -52,56 +93,40 @@ const Header = () => {
                                 <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
                             </div>
                             <div className="max-h-96 overflow-y-auto">
+
                                 {/* Notification Items */}
-                                <a href="#" className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                            <i className="fas fa-calendar-check text-indigo-600"></i>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">New booking</p>
-                                            <p className="text-sm text-gray-500">John Doe booked a session for tomorrow</p>
-                                            <p className="text-xs text-gray-400 mt-1">2 minutes ago</p>
-                                        </div>
-                                    </div>
-                                </a>
 
-                                <a href="#" className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                                            <i className="fas fa-dollar-sign text-green-600"></i>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Payment received</p>
-                                            <p className="text-sm text-gray-500">$120 from Jane Smith</p>
-                                            <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
-                                        </div>
-                                    </div>
-                                </a>
+                                {
+                                    notifications.map((notification, index) => (
 
-                                <a href="#" className="block px-4 py-3 hover:bg-gray-50">
-                                    <div className="flex items-start">
-                                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                                            <i className="fas fa-exclamation-triangle text-yellow-600"></i>
-                                        </div>
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Session reminder</p>
-                                            <p className="text-sm text-gray-500">You have a session in 30 minutes</p>
-                                            <p className="text-xs text-gray-400 mt-1">3 hours ago</p>
-                                        </div>
-                                    </div>
-                                </a>
+                                        <a key={index} href="#" className="block px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
+                                            <div className="flex items-start">
+                                                <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                    <i className={`${getIcon(notification.type).icon} text-${getIcon(notification.type).color}-600`}></i>
+                                                </div>
+                                                <div className="ml-3">
+                                                    <p className="text-sm font-medium text-gray-900">{notification.name}</p>
+                                                    <p className="text-sm text-gray-500">{notification.message}</p>
+                                                    <p className="text-xs text-gray-400 mt-1">{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    ))
+                                }
+
+
+
                             </div>
                             <div className="px-4 py-2 border-t border-gray-200 bg-gray-50 text-center">
-                                <a href="#" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
+                                <Link to="/notifications" className="text-sm font-medium text-indigo-600 hover:text-indigo-900">
                                     View all notifications
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     )}
                 </div>
 
-               
+
                 {/* Profile Dropdown */}
                 <div className="relative">
                     <button

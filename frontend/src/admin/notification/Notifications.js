@@ -6,7 +6,7 @@ import API from '../../services/axios';
 
 const Notifications = () => {
 
-    const { user , setUser } = useContext(GlobalContext);
+    const { user, setUser } = useContext(GlobalContext);
     const [notifications, setNotifications] = useState([]);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ const Notifications = () => {
     const markAsRead = async (notificationId) => {
         try {
             await API.patch(`/notifications/${notificationId}/read`);
-            setNotifications(notifications.map(notification => 
+            setNotifications(notifications.map(notification =>
                 notification._id === notificationId ? { ...notification, read: true } : notification
             ));
         } catch (err) {
@@ -42,7 +42,7 @@ const Notifications = () => {
     const markAllAsRead = async () => {
         try {
             await API.patch(`/notifications/mark-all-read`, { userId: user._id });
-            setNotifications(notifications.map(notification => 
+            setNotifications(notifications.map(notification =>
                 ({ ...notification, read: true })
             ));
         } catch (err) {
@@ -117,29 +117,29 @@ const Notifications = () => {
                             {error}
                         </div>
                     )}
-                    
+
                     <div className="mb-6 flex items-center justify-between">
                         <div className="flex space-x-2">
-                            <button 
+                            <button
                                 onClick={() => setFilter('all')}
                                 className={`px-3 py-1 text-sm font-medium rounded-full ${filter === 'all' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
                             >
                                 All
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setFilter('unread')}
                                 className={`px-3 py-1 text-sm font-medium rounded-full ${filter === 'unread' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
                             >
                                 Unread
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setFilter('archived')}
                                 className={`px-3 py-1 text-sm font-medium rounded-full ${filter === 'archived' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 border border-gray-300'}`}
                             >
                                 Archived
                             </button>
                         </div>
-                        <button 
+                        <button
                             onClick={markAllAsRead}
                             className="text-sm text-indigo-600 hover:text-indigo-900"
                             disabled={loading}
@@ -160,7 +160,7 @@ const Notifications = () => {
                                         <h3 className="text-sm font-medium text-gray-900">Today</h3>
                                     </div>
                                     {groupedNotifications.today.map(notification => (
-                                        <NotificationItem 
+                                        <NotificationItem
                                             key={notification._id}
                                             notification={notification}
                                             markAsRead={markAsRead}
@@ -177,7 +177,7 @@ const Notifications = () => {
                                         <h3 className="text-sm font-medium text-gray-900">Yesterday</h3>
                                     </div>
                                     {groupedNotifications.yesterday.map(notification => (
-                                        <NotificationItem 
+                                        <NotificationItem
                                             key={notification._id}
                                             notification={notification}
                                             markAsRead={markAsRead}
@@ -194,7 +194,7 @@ const Notifications = () => {
                                         <h3 className="text-sm font-medium text-gray-900">Older</h3>
                                     </div>
                                     {groupedNotifications.older.map(notification => (
-                                        <NotificationItem 
+                                        <NotificationItem
                                             key={notification._id}
                                             notification={notification}
                                             markAsRead={markAsRead}
@@ -240,14 +240,14 @@ const NotificationItem = ({ notification, markAsRead, archiveNotification, getIc
                         <p className="text-xs text-gray-400">{date}</p>
                         <div className="space-x-2">
                             {!notification.read && (
-                                <button 
+                                <button
                                     onClick={() => markAsRead(notification._id)}
                                     className="text-xs text-indigo-600 hover:text-indigo-900"
                                 >
                                     Mark as read
                                 </button>
                             )}
-                            <button 
+                            <button
                                 onClick={() => archiveNotification(notification._id)}
                                 className="text-xs text-gray-500 hover:text-gray-900"
                             >

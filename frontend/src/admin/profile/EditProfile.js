@@ -16,15 +16,10 @@ const EditProfile = () => {
         newPassword: '',
         confirmPassword: ''
     });
-    const [loading, setLoading] = useState({
-        profile: false,
-        password: false,
-        avatar: false
-    });
     const [errors, setErrors] = useState({
         profile: '',
         password: '',
-        avatar: ''
+        picture: ''
     });
 
     useEffect(() => {
@@ -59,36 +54,44 @@ const EditProfile = () => {
         return true;
     };
 
+
+    const [loadingProfile, setLoadingProfile] = useState(false)
     const handleProfileUpdate = async (e) => {
         e.preventDefault();
         if (!validateProfile()) return;
-        
-        setLoading({ ...loading, profile: true });
+
+        setLoadingProfile(true);
         setErrors({ ...errors, profile: '' });
-        
+
+        const data = {
+            name: formData.name,
+            phone: formData.phone,
+            country: formData.country,
+            timezone: formData.timezone,
+        }
+
         try {
-            const response = await API.put('/profile', {
-                name: formData.name,
-                phone: formData.phone,
-                country: formData.country,
-                timezone: formData.timezone,
-            });
+            const response = await API.put('/profile', data);
+            // console.log(data)
 
             setUser(response.data);
-            Swal.fire({
-                title: 'Success!',
-                text: 'Profile updated successfully',
-                icon: 'success',
-                timer: 2000
-            });
+            if (response.data.status) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Profile updated successfully',
+                    icon: 'success',
+                    timer: 2000
+                });
+                window.location.reload();
+            }
         } catch (err) {
-            setErrors({ 
-                ...errors, 
-                profile: err.response?.data?.message || 'Failed to update profile' 
+            setErrors({
+                ...errors,
+                profile: err.response?.data?.message || 'Failed to update profile'
             });
             console.log(err)
         } finally {
-            setLoading({ ...loading, profile: false });
+            setLoadingProfile(false);
         }
     };
 
@@ -108,68 +111,75 @@ const EditProfile = () => {
         return true;
     };
 
+
+    const [loadingPassword, setLoadingPassword] = useState(false)
     const handlePasswordChange = async (e) => {
         e.preventDefault();
         if (!validatePassword()) return;
 
-        setLoading({ ...loading, password: true });
+        setLoadingPassword(true);
         setErrors({ ...errors, password: '' });
 
-        try {
-            await API.put('/password', {
-                currentPassword: formData.currentPassword,
-                newPassword: formData.newPassword
-            });
+        const data = {
+            currentPassword: formData.currentPassword,
+            newPassword: formData.newPassword
+        }
 
-            Swal.fire({
-                title: 'Success!',
-                text: 'Password changed successfully',
-                icon: 'success',
-                timer: 2000
-            });
-            
-            setFormData({
-                ...formData,
-                currentPassword: '',
-                newPassword: '',
-                confirmPassword: ''
-            });
+        try {
+
+            console.log(data)
+            const response = await API.put('/password', data);
+
+            if (response.data && response.data.msg) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: response.data.msg,
+                    icon: 'success',
+                    timer: 2000
+                });
+
+                setFormData({
+                    ...formData,
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                });
+            }
+            setLoadingPassword(false);
         } catch (err) {
-            setErrors({ 
-                ...errors, 
-                password: err.response?.data?.message || 'Failed to change password' 
+            setErrors({
+                ...errors,
+                password: err.response?.data?.message || err.response?.data?.msg || 'Failed to change password'
             });
-        } finally {
-            setLoading({ ...loading, password: false });
+            console.error('Password change error:', err);
+            setLoadingPassword(false);
         }
     };
 
+
+
+    const [loadingPicture, setLoadingPicture] = useState(false)
     const handleAvatarUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validate file type and size
         if (!file.type.match('image.*')) {
-            setErrors({ ...errors, avatar: 'Please select an image file' });
+            setErrors({ ...errors, picture: 'Please select an image file' });
             return;
         }
         if (file.size > 2 * 1024 * 1024) { // 2MB
-            setErrors({ ...errors, avatar: 'Image size should be less than 2MB' });
+            setErrors({ ...errors, picture: 'Image size should be less than 2MB' });
             return;
         }
 
         const formData = new FormData();
-        formData.append('avatar', file);
+        formData.append('picture', file);
 
         try {
-            setLoading({ ...loading, avatar: true });
-            setErrors({ ...errors, avatar: '' });
-            
-            const response = await API.post('/profile/picture', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+            setLoadingPicture(true);
+            setErrors({ ...errors, picture: '' });
+
+            const response = await API.post('/profile/picture', formData);
 
             setUser(response.data);
             Swal.fire({
@@ -178,13 +188,14 @@ const EditProfile = () => {
                 icon: 'success',
                 timer: 2000
             });
+            setLoadingPicture(false);
         } catch (err) {
-            setErrors({ 
-                ...errors, 
-                avatar: err.response?.data?.message || 'Failed to upload image' 
+            setErrors({
+                ...errors,
+                picture: err.response?.data?.message || 'Failed to upload image'
             });
         } finally {
-            setLoading({ ...loading, avatar: false });
+            setLoadingPicture(false);
         }
     };
 
@@ -217,25 +228,26 @@ const EditProfile = () => {
                                     </label>
                                     <div className="mt-2 flex items-center">
                                         <span className="h-12 w-12 rounded-full overflow-hidden bg-gray-100">
-                                            <img
-                                                className="h-full w-full object-cover"
-                                                src={user?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'}
-                                                alt="Profile"
-                                            />
+
+                                            {user && user.picture ? (
+                                                <img className="h-full w-full object-cover" src={user.picture} alt="User picture" />
+                                            ) : (
+                                                <img className="h-full w-full object-cover" src={`https://ui-avatars.com/api/?name=${user?.name}&background=0ea5e9&color=fff`} alt="User picture" />
+                                            )}
                                         </span>
                                         <label className="ml-5 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
-                                            {loading.avatar ? 'Uploading...' : 'Change'}
+                                            {loadingPicture ? 'Uploading...' : 'Change'}
                                             <input
                                                 type="file"
                                                 className="hidden"
                                                 accept="image/*"
                                                 onChange={handleAvatarUpload}
-                                                disabled={loading.avatar}
+                                                disabled={loadingPicture}
                                             />
                                         </label>
                                     </div>
-                                    {errors.avatar && (
-                                        <p className="mt-2 text-sm text-red-600">{errors.avatar}</p>
+                                    {errors.picture && (
+                                        <p className="mt-2 text-sm text-red-600">{errors.picture}</p>
                                     )}
                                 </div>
 
@@ -336,9 +348,9 @@ const EditProfile = () => {
                                         <button
                                             type="submit"
                                             className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                                            disabled={loading.profile}
+                                            disabled={loadingProfile}
                                         >
-                                            {loading.profile ? (
+                                            {loadingProfile ? (
                                                 <>
                                                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -417,9 +429,9 @@ const EditProfile = () => {
                                     <button
                                         type="submit"
                                         className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                                        disabled={loading.password || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
+                                        disabled={loadingPassword || !formData.currentPassword || !formData.newPassword || !formData.confirmPassword}
                                     >
-                                        {loading.password ? (
+                                        {loadingPassword ? (
                                             <>
                                                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

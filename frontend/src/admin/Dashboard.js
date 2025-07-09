@@ -4,24 +4,35 @@ import API from "../services/axios";
 import moment from 'moment';
 import BookingModal from './bookings/BookingModal';
 import Swal from 'sweetalert2';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
+import Loader from '../components/Loader';
 
 
 const Dashboard = () => {
 
     const [stats, setStats] = useState({ clients: 0, bookings: 0 });
     const [sessionPricing, setSessionPricing] = useState(null);
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const navigate = useNavigate();
+
+
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [statsRes, sessionPricingRes] = await Promise.all([
+                const [statsRes, sessionPricingRes, notificationRes] = await Promise.all([
                     API.get('/stats'),
                     API.get('/pricing'),
+                    API.get('/notifications?filter=all'),
                 ]);
                 setStats(statsRes.data)
                 setSessionPricing(sessionPricingRes.data);
+                setNotifications(notificationRes.data);
+                console.log(statsRes.data)
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to fetch data');
             } finally {
@@ -32,7 +43,6 @@ const Dashboard = () => {
     }, []);
 
     const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [clients, setClients] = useState([]);
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -119,6 +129,31 @@ const Dashboard = () => {
         });
     };
 
+
+    const getIcon = (type) => {
+        switch (type) {
+            case 'booking':
+                return { icon: 'fas fa-calendar-check', color: 'indigo' };
+            case 'payment':
+                return { icon: 'fas fa-dollar-sign', color: 'green' };
+            case 'reminder':
+                return { icon: 'fas fa-exclamation-triangle', color: 'yellow' };
+            case 'message':
+                return { icon: 'fas fa-envelope', color: 'blue' };
+            default:
+                return { icon: 'fas fa-bell', color: 'gray' };
+        }
+    };
+
+
+    if (loading) {
+        return (
+            <Layout active="dashboard" content={
+                <Loader />
+            } />
+        )
+    }
+
     return (
         <>
             <Layout active="dashboard" content={
@@ -144,7 +179,7 @@ const Dashboard = () => {
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Total Bookingd</p>
+                                        <p className="text-sm font-medium text-gray-500">Total Bookings</p>
                                         <p className="text-2xl font-semibold text-gray-900">{stats.bookings}</p>
                                         <p className="text-xs text-green-500 mt-1">
                                             <i className="fas fa-arrow-up mr-1"></i> 5.3% from last month
@@ -158,109 +193,33 @@ const Dashboard = () => {
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Revenue</p>
-                                        <p className="text-2xl font-semibold text-gray-900">$124,850</p>
+                                        <p className="text-sm font-medium text-gray-500">Unread Notification</p>
+                                        <p className="text-2xl font-semibold text-gray-900">{stats.notifications}</p>
                                         <p className="text-xs text-red-500 mt-1">
                                             <i className="fas fa-arrow-down mr-1"></i> 2.1% from last month
                                         </p>
                                     </div>
                                     <div className="p-3 rounded-full bg-blue-50 text-blue-600">
-                                        <i className="fas fa-dollar-sign text-xl"></i>
+                                        <i className="fas fa-bell text-xl"></i>
                                     </div>
                                 </div>
                             </div>
                             <div className="bg-white rounded-lg shadow p-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">Tasks Completed</p>
-                                        <p className="text-2xl font-semibold text-gray-900">36/48</p>
+                                        <p className="text-sm font-medium text-gray-500">Upcoming Bookings</p>
+                                        <p className="text-2xl font-semibold text-gray-900">{stats.upcomingBookingCount}</p>
                                         <p className="text-xs text-green-500 mt-1">
                                             <i className="fas fa-arrow-up mr-1"></i> 8.7% from last month
                                         </p>
                                     </div>
                                     <div className="p-3 rounded-full bg-purple-50 text-purple-600">
-                                        <i className="fas fa-check-circle text-xl"></i>
+                                        <i className="fas fa-clock text-xl"></i>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Charts and main content */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                            {/* Revenue chart */}
-                            <div className="bg-white rounded-lg shadow p-6 lg:col-span-2">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-lg font-semibold text-gray-900">Revenue Overview</h2>
-                                    <div className="flex items-center space-x-2">
-                                        <button className="px-3 py-1 text-xs bg-primary-50 text-primary-600 rounded-full">Monthly</button>
-                                        <button className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">Quarterly</button>
-                                        <button className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">Yearly</button>
-                                    </div>
-                                </div>
-                                <div className="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
-                                    {/* Chart placeholder - would be replaced with actual chart library */}
-                                    <p className="text-gray-400">Revenue chart visualization</p>
-                                </div>
-                            </div>
-
-                            {/* Sales funnel */}
-                            <div className="bg-white rounded-lg shadow p-6">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Sales Funnel</h2>
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="text-gray-600">Prospects</span>
-                                            <span className="font-medium">1,248</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: "100%" }}></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="text-gray-600">Qualified Leads</span>
-                                            <span className="font-medium">842</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: "67%" }}></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="text-gray-600">Meetings</span>
-                                            <span className="font-medium">492</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: "39%" }}></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="text-gray-600">Proposals</span>
-                                            <span className="font-medium">184</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: "15%" }}></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-1">
-                                            <span className="text-gray-600">Closed Won</span>
-                                            <span className="font-medium">84</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: "7%" }}></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Conversion Rate</span>
-                                        <span className="font-medium text-primary-600">6.7%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Recent activities and top customers */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -334,50 +293,60 @@ const Dashboard = () => {
                             <div className="bg-white rounded-lg shadow p-6">
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Customers</h2>
                                 <div className="space-y-4">
-                                    <div className="flex items-center">
-                                        <img className="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Acme+Corp&background=0ea5e9&color=fff" alt="Acme Corp" />
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Acme Corp</p>
-                                            <p className="text-sm text-gray-500">$42,500 total</p>
-                                        </div>
-                                        <div className="ml-auto">
-                                            <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">VIP</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <img className="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Global+Tech&background=0ea5e9&color=fff" alt="Global Tech" />
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Global Tech</p>
-                                            <p className="text-sm text-gray-500">$28,750 total</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <img className="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Innovate+Inc&background=0ea5e9&color=fff" alt="Innovate Inc" />
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Innovate Inc</p>
-                                            <p className="text-sm text-gray-500">$19,200 total</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <img className="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Tech+Solutions&background=0ea5e9&color=fff" alt="Tech Solutions" />
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Tech Solutions</p>
-                                            <p className="text-sm text-gray-500">$15,800 total</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <img className="h-10 w-10 rounded-full" src="https://ui-avatars.com/api/?name=Digital+Wave&background=0ea5e9&color=fff" alt="Digital Wave" />
-                                        <div className="ml-3">
-                                            <p className="text-sm font-medium text-gray-900">Digital Wave</p>
-                                            <p className="text-sm text-gray-500">$12,300 total</p>
-                                        </div>
-                                    </div>
+                                    {
+                                        stats?.topClients?.map((client, index) => (
+                                            <div className="flex items-center">
+                                                <img className="h-10 w-10 rounded-full" src={`https://ui-avatars.com/api/?name=${client.fullName}&background=0ea5e9&color=fff`} alt="Acme Corp" />
+                                                <div className="ml-3">
+                                                    <p className="text-sm font-medium text-gray-900">{client.fullName}</p>
+                                                </div>
+                                                <div className="ml-auto">
+                                                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">{client.bookingCount} booking</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    }
                                 </div>
                                 <div className="mt-4">
-                                    <button className="text-sm text-primary-600 hover:text-primary-800 font-medium">View all customers</button>
+                                    <button onClick={() => navigate(`/clients`)} className="text-sm text-primary-600 hover:text-primary-800 font-medium">View all customers</button>
                                 </div>
                             </div>
                         </div>
+
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 my-6">
+                            <div className="bg-white rounded-2xl shadow-md p-6 lg:col-span-2">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-xl font-bold text-gray-800">Recent Activity</h2>
+                                </div>
+
+                                <div className="divide-y divide-gray-100">
+                                    {notifications.length === 0 ? (
+                                        <p className="text-gray-500 text-sm text-center py-6">No recent notifications</p>
+                                    ) : (
+                                        notifications.map((notification, index) => (
+                                            <a
+                                                key={index}
+                                                href="#"
+                                                className="flex items-start gap-4 py-4 hover:bg-gray-50 px-2 rounded-lg transition"
+                                            >
+                                                <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center shadow-sm">
+                                                    <i className={`${getIcon(notification.type).icon} text-${getIcon(notification.type).color}-600 text-lg`}></i>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-gray-900">{notification.name}</p>
+                                                    <p className="text-sm text-gray-600">{notification.message}</p>
+                                                    <p className="text-xs text-gray-400 mt-1">
+                                                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                                                    </p>
+                                                </div>
+                                            </a>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
 
                         {/* Booking Modal */}
                         {showModal && (

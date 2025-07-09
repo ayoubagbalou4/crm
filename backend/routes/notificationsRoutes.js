@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     getNotifications,
-    markAsRead,
+    markAsRead, 
     markAllAsRead,
     archiveNotification
 } = require('../controllers/notificationController');

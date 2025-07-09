@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from "react";
 import API from "../../services/axios";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useParams } from "react-router-dom";
 import Layout from '../Layout';
 import moment from 'moment';
 import Swal from 'sweetalert2';
 
 const AddBooking = () => {
+    const { id } = useParams()
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [form, setForm] = useState({
-        clientId: "",
+        clientId: id ? id : "",
         SessionPricingId: "",
         date: "",
         time: "",

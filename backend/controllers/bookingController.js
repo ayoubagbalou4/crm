@@ -1,4 +1,7 @@
 const Booking = require("../models/Booking");
+const SessionPricing = require('../models/SessionPricing');
+const Client = require('../models/Client');
+const { createNotification } = require("./notificationController");
 
 // Create a booking
 exports.createBooking = async (req, res) => {
@@ -7,6 +10,8 @@ exports.createBooking = async (req, res) => {
         const trainerId = req.user.id;
 
         const exists = await Booking.findOne({ trainerId, date, time, status: "confirmed" });
+        const session = await SessionPricing.findOne({ _id:SessionPricingId });
+        const client = await Client.findOne({ _id:clientId });
         if (exists) return res.status(400).json({ message: "Time slot already booked" });
 
         const booking = await Booking.create({
@@ -17,6 +22,12 @@ exports.createBooking = async (req, res) => {
             time,
             notes,
         });
+        createNotification(
+            trainerId,
+            "New booking confirmed",
+            `New ${session.sessionType} session booked with ${client.fullName} on ${date} at ${time}`,
+            "booking"
+        )
 
         res.status(201).json(booking);
     } catch (err) {

@@ -10,9 +10,9 @@ router.post("/login", login);
 router.get("/users", getUsers);
 router.post('/logout', logout)
 router.post("/api/auth/google", loginGoogle);
-router.put('/profile', updateProfile)
-router.put('/password', updatePassword)
-router.post('/profile/picture', upload.single('avatar') , updatePicture)
+router.put('/profile', authMiddleware , updateProfile)
+router.put('/password', authMiddleware , updatePassword)
+router.post('/profile/picture', upload.single('picture') , authMiddleware , updatePicture)
 
 router.get("/me", authMiddleware, async (req, res) => {
     try {

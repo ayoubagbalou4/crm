@@ -80,10 +80,10 @@ exports.archiveNotification = async (req, res) => {
 };
 
 // Create a new notification (used by other services)
-exports.createNotification = async (title, message, type) => {
+exports.createNotification = async (userId , title, message, type) => {
     try {
         const notification = new Notification({
-            userId: req.user.id,
+            userId,
             title,
             message,
             type

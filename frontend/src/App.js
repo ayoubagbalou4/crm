@@ -44,7 +44,7 @@ const App = () => {
           <Route path='/clients/editclient/:id' element={<EditClient />} />
 
           <Route path='/bookings' element={<Bookings />} />
-          <Route path='/bookings/new' element={<AddBooking />} />
+          <Route path='/bookings/new/:id?' element={<AddBooking />} />
           <Route path='/bookings/:id' element={<BookingDetails />} />
 
           <Route path='/calendar' element={<CalendarView />} />
