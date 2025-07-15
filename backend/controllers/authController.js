@@ -52,6 +52,18 @@ exports.getUsers = async (req, res) => {
 };
 
 
+exports.tally = async (req, res) => {
+    try {
+        const { data } = req.body;
+        console.log(data)
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Error saving Tally data:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -99,7 +111,7 @@ exports.generateFromSubmit = async (req, res) => {
     try {
         const user = await User.findById(req.user.id)
         const { link } = req.body
-        
+
         if (!link) {
             return res.status(400).json({ message: "Form link is required" })
         }
