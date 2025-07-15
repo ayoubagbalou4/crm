@@ -11,7 +11,7 @@ import Loader from '../components/Loader';
 
 const Dashboard = () => {
 
-    const [stats, setStats] = useState({ clients: 0, bookings: 0 });
+    const [stats, setStats] = useState({ clients: 0, bookings: 0 , notifications: 0, upcomingBookingCount: 0 });
     const [sessionPricing, setSessionPricing] = useState(null);
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -32,7 +32,6 @@ const Dashboard = () => {
                 setStats(statsRes.data)
                 setSessionPricing(sessionPricingRes.data);
                 setNotifications(notificationRes.data);
-                console.log(statsRes.data)
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to fetch data');
             } finally {

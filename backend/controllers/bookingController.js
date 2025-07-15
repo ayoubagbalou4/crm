@@ -10,8 +10,8 @@ exports.createBooking = async (req, res) => {
         const trainerId = req.user.id;
 
         const exists = await Booking.findOne({ trainerId, date, time, status: "confirmed" });
-        const session = await SessionPricing.findOne({ _id:SessionPricingId });
-        const client = await Client.findOne({ _id:clientId });
+        const session = await SessionPricing.findOne({ _id: SessionPricingId });
+        const client = await Client.findOne({ _id: clientId });
         if (exists) return res.status(400).json({ message: "Time slot already booked" });
 
         const booking = await Booking.create({
@@ -129,4 +129,29 @@ exports.deleteBooking = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Failed to delete Booking', details: error.message });
     }
+};
+
+
+
+
+exports.bookingsReminders = async (req, res) => {
+    const range = req.query.range || 'today';
+    const now = new Date();
+    let start, end;
+
+    if (range === 'today') {
+        start = new Date(now.setHours(0, 0, 0, 0));
+        end = new Date(now.setHours(23, 59, 59, 999));
+    } else if (range === 'tomorrow') {
+        start = new Date(now.setDate(now.getDate() + 1));
+        start.setHours(0, 0, 0, 0);
+        end = new Date(now.setDate(now.getDate() + 1));
+        end.setHours(23, 59, 59, 999);
+    }
+
+    const bookings = await Booking.find({
+        date: { $gte: start, $lte: end }
+    }).populate('clientId trainerId');
+
+    res.json(bookings);
 };

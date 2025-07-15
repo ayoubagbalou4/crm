@@ -21,11 +21,12 @@ import EditProfile from './admin/profile/EditProfile';
 import EmailSettings from './admin/settings/EmailSettings';
 import LandingPage from './pages/LandingPage';
 import Notifications from './admin/notification/Notifications';
+import FormIntegration from './admin/profile/FormIntegration';
 
 const App = () => {
 
-  axios.defaults.baseURL = 'http://localhost:4000/'
-  // axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
+  // axios.defaults.baseURL = 'http://localhost:4000/'
+  axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
   axios.defaults.withCredentials = true
 
   return (
@@ -54,6 +55,7 @@ const App = () => {
           <Route path='/emailSettings' element={<EmailSettings />} />
 
           <Route path='/profile' element={<EditProfile />} />
+          <Route path='/FormIntegration' element={<FormIntegration />} />
 
           <Route path='/notifications' element={<Notifications />} />
 

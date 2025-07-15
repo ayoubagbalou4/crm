@@ -95,6 +95,31 @@ exports.logout = async (req, res) => {
 };
 
 
+exports.generateFromSubmit = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id)
+        const { link } = req.body
+        
+        if (!link) {
+            return res.status(400).json({ message: "Form link is required" })
+        }
+
+        const token = jwt.sign(
+            { id: user._id, email: user.email }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: "7d" }
+        )
+
+        const url = new URL(link)
+        url.searchParams.set('token', token)
+        res.status(200).json(url.toString())
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ message: "Failed to generate form URL", error: error.message })
+    }
+};
+
+
 
 
 
@@ -160,7 +185,7 @@ exports.updatePicture = async (req, res) => {
         }
 
         if (req.file) {
-            user.picture = process.env.BASE_URL+req.file.path;
+            user.picture = process.env.BASE_URL + req.file.path;
             await user.save();
         }
         res.json(user);

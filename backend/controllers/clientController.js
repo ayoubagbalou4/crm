@@ -1,4 +1,5 @@
 const Client = require("../models/Client");
+const axios = require('axios');
 
 exports.createClient = async (req, res) => {
     try {
@@ -17,6 +18,15 @@ exports.createClient = async (req, res) => {
             tags
         });
         await client.save()
+        await axios.post('http://localhost:5678/webhook-test/new-client', {
+            userId,
+            fullName,
+            email,
+            phone,
+            gender,
+            birthDate,
+            address
+        });
         res.status(201).json({ status: true, client });
     } catch (err) {
         res.status(500).json({ message: err.message });

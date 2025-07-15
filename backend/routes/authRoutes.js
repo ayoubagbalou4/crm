@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { register, login, getUsers, logout , loginGoogle , updateProfile , updatePassword , updatePicture } = require("../controllers/authController");
+const { register, login, getUsers, logout , loginGoogle , generateFromSubmit , updateProfile , updatePassword , updatePicture } = require("../controllers/authController");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const upload = require('../middleware/upload');
 const User = require("../models/User");
@@ -8,6 +8,7 @@ const User = require("../models/User");
 router.post("/register", register);
 router.post("/login", login);
 router.get("/users", getUsers);
+router.post("/forms", authMiddleware , generateFromSubmit);
 router.post('/logout', logout)
 router.post("/api/auth/google", loginGoogle);
 router.put('/profile', authMiddleware , updateProfile)

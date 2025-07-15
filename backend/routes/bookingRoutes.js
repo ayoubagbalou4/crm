@@ -7,18 +7,20 @@ const {
   cancelBooking,
   updateBooking,
   deleteBooking,
-  getBookingsByClient
+  getBookingsByClient,
+  bookingsReminders
 } = require("../controllers/bookingController");
 
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
-router.post("/bookings", createBooking); 
-router.get("/bookings", getBookings);   
-router.get("/bookings/:id", getBooking);   
-router.get("/bookingsByClient/:id", getBookingsByClient);   
-router.patch("/bookings/:id/cancel", cancelBooking); 
-router.put("/bookings/:id", updateBooking);
-router.delete("/bookings/:id", deleteBooking);
+router.get("/bookingsreminders", bookingsReminders);   
+router.post("/bookings", authMiddleware , createBooking); 
+router.get("/bookings", authMiddleware , getBookings);   
+router.get("/bookings/:id", authMiddleware , getBooking);   
+router.get("/bookingsByClient/:id", authMiddleware , getBookingsByClient);   
+router.patch("/bookings/:id/cancel", authMiddleware , cancelBooking); 
+router.put("/bookings/:id", authMiddleware , updateBooking);
+router.delete("/bookings/:id", authMiddleware , deleteBooking);
 
 module.exports = router;
 
