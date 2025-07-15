@@ -8,7 +8,7 @@ const User = require("../models/User");
 router.post("/register", register);
 router.post("/login", login);
 router.get("/users", getUsers);
-router.get("/tally", tally);
+router.post("/tally", tally);
 router.post("/forms", authMiddleware , generateFromSubmit);
 router.post('/logout', logout)
 router.post("/api/auth/google", loginGoogle);
