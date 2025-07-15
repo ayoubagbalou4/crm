@@ -53,6 +53,21 @@ exports.getUsers = async (req, res) => {
 };
 
 
+function getFieldValue(fields, label) {
+    const field = fields.find(f => f.label.toLowerCase() === label.toLowerCase());
+    return field ? field.value : null;
+}
+
+function getGenderText(field) {
+    const genderField = field.find(f => f.label.toLowerCase() === 'gender');
+    if (!genderField || !genderField.value || !genderField.options) return null;
+
+    const selectedId = genderField.value[0];
+    const option = genderField.options.find(opt => opt.id === selectedId);
+    return option ? option.text.charAt(0).toUpperCase() + option.text.slice(1) : null;
+}
+
+
 exports.tally = async (req, res) => {
     try {
         const { data } = req.body;
@@ -64,9 +79,11 @@ exports.tally = async (req, res) => {
         const birthDate = getFieldValue(fields, 'birthday');
         const address = getFieldValue(fields, 'address');
         const notes = getFieldValue(fields, 'notes');
+        const token = getFieldValue(fields, 'token');
         const gender = getGenderText(fields);
 
-        const userId = 'YOUR_DEFAULT_USER_ID'; 
+        const decoded = jwt.verify(token, process.env.jwt_secret);
+        const userId = decoded.id;
 
         const newClient = new Client({
             userId,
