@@ -104,11 +104,7 @@ exports.generateFromSubmit = async (req, res) => {
             return res.status(400).json({ message: "Form link is required" })
         }
 
-        const token = jwt.sign(
-            { id: user._id, email: user.email }, 
-            process.env.JWT_SECRET, 
-            { expiresIn: "7d" }
-        )
+        const token = generateToken(user);
 
         const url = new URL(link)
         url.searchParams.set('token', token)
