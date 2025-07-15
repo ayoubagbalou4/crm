@@ -2,6 +2,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { OAuth2Client } = require('google-auth-library');
+const Client = require("../models/Client");
 
 
 const generateToken = (user) => {
@@ -55,11 +56,35 @@ exports.getUsers = async (req, res) => {
 exports.tally = async (req, res) => {
     try {
         const { data } = req.body;
-        console.log(data)
-        res.status(200).json(data);
+        const fields = data.fields;
+
+        const fullName = getFieldValue(fields, 'full name');
+        const email = getFieldValue(fields, 'email');
+        const phone = getFieldValue(fields, 'phone');
+        const birthDate = getFieldValue(fields, 'birthday');
+        const address = getFieldValue(fields, 'address');
+        const notes = getFieldValue(fields, 'notes');
+        const gender = getGenderText(fields);
+
+        const userId = 'YOUR_DEFAULT_USER_ID'; 
+
+        const newClient = new Client({
+            userId,
+            fullName,
+            email,
+            phone,
+            gender,
+            birthDate,
+            address,
+            notes,
+        });
+
+        await newClient.save();
+
+        res.status(200).json({ message: 'Client added from Tally form!' });
     } catch (error) {
-        console.error("Error saving Tally data:", error);
-        res.status(500).json({ message: "Server error" });
+        console.error('Webhook error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
