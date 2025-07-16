@@ -1,6 +1,5 @@
 import axios from "axios";
 import React, { createContext, useEffect, useState } from "react";
-import API from "./services/axios";
 
 export const GlobalContext = createContext();
 
@@ -9,7 +8,12 @@ export const GlobalProvider = ({ children }) => {
 
     const getLoggedInUser = async () => {
         try {
-            const res = await API.get("/me");
+            const token = localStorage.getItem("token");
+            const res = await axios.get("/me", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             setUser(res.data.user);
         } catch (err) {
             console.error("Failed to get user", err);

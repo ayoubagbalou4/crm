@@ -25,6 +25,8 @@ import FormIntegration from './admin/profile/FormIntegration';
 
 const App = () => {
 
+  // axios.defaults.baseURL = 'http://localhost:4000/'
+  axios.defaults.baseURL = 'https://crm-qyaz.vercel.app/'
   axios.defaults.withCredentials = true
 
   return (
