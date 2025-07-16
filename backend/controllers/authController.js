@@ -86,6 +86,7 @@ exports.tally = async (req, res) => {
 
         const decoded = jwt.verify(token, process.env.jwt_secret);
         const userId = decoded.id;
+        const user = await User.findById(decoded.id)
 
         const newClient = new Client({
             userId,
@@ -100,11 +101,13 @@ exports.tally = async (req, res) => {
 
         await newClient.save();
 
-        await axios.post('http://localhost:5678/webhook/capture-lead', {
+        await axios.post('http://localhost:5678/webhook-test/capture-lead', {
             userId,
+            userName: user.name,
+            trainerEmail: user.email,
             fullName,
             email,
-            phone,
+            phone, 
             gender,
             birthDate,
             address
