@@ -17,8 +17,7 @@ exports.createClient = async (req, res) => {
             notes,
             tags
         });
-        await client.save()
-        await axios.post('http://localhost:5678/webhook-test/new-client', {
+        await axios.post('http://localhost:5678/webhook/new-client', {
             userId,
             fullName,
             email,
@@ -27,6 +26,7 @@ exports.createClient = async (req, res) => {
             birthDate,
             address
         });
+        await client.save()
         res.status(201).json({ status: true, client });
     } catch (err) {
         res.status(500).json({ message: err.message });
