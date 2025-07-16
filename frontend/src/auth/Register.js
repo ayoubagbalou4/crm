@@ -1,6 +1,7 @@
 import axios from 'axios'
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import API from '../services/axios'
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -73,7 +74,7 @@ const Register = () => {
         setIsSubmitting(true)
 
         try {
-            const response = await axios.post('/register', 
+            const response = await API.post('/register', 
                 {
                     name: formData.name,
                     email: formData.email,

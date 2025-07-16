@@ -2,6 +2,7 @@ import axios from 'axios'
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google';
+import API from '../services/axios';
 
 const Login = () => {
     const [formData, setFormData] = useState({
@@ -57,7 +58,7 @@ const Login = () => {
         setIsSubmitting(true)
 
         try {
-            const response = await axios.post('/login', {
+            const response = await API.post('/login', {
                 email: formData.email,
                 password: formData.password
             }
@@ -95,7 +96,7 @@ const Login = () => {
     const handleSuccess = async (credentialResponse) => {
         const { credential } = credentialResponse;
 
-        const res = await axios.post('/api/auth/google', {
+        const res = await API.post('/api/auth/google', {
             token: credential,
         });
 
