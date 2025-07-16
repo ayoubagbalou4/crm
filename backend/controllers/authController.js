@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const { OAuth2Client } = require('google-auth-library');
 const Client = require("../models/Client");
+const axios = require('axios');
+
 
 
 const generateToken = (user) => {
@@ -94,6 +96,16 @@ exports.tally = async (req, res) => {
             birthDate,
             address,
             notes,
+        });
+
+        await axios.post('http://localhost:5678/webhook/capture-lead', {
+            userId,
+            fullName,
+            email,
+            phone,
+            gender,
+            birthDate,
+            address
         });
 
         await newClient.save();
