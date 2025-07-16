@@ -98,6 +98,8 @@ exports.tally = async (req, res) => {
             notes,
         });
 
+        await newClient.save();
+
         await axios.post('http://localhost:5678/webhook/capture-lead', {
             userId,
             fullName,
@@ -107,8 +109,6 @@ exports.tally = async (req, res) => {
             birthDate,
             address
         });
-
-        await newClient.save();
 
         res.status(200).json({ message: 'Client added from Tally form!' });
     } catch (error) {
