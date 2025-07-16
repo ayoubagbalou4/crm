@@ -116,7 +116,7 @@ exports.tally = async (req, res) => {
         res.status(200).json({ message: 'Client added from Tally form!' });
     } catch (error) {
         console.error('Webhook error:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' , error });
     }
 };
 
